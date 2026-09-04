@@ -44,7 +44,6 @@
             font-size: 14px;
             line-height: 1.6;
             word-wrap: break-word;
-            white-space: pre-wrap;
         }
         .message.bot {
             background: #1e293b;
@@ -56,6 +55,22 @@
             background: #3b82f6;
             align-self: flex-end;
             border-bottom-right-radius: 2px;
+        }
+        /* Markdown formatting fixes inside bot messages */
+        .message.bot p {
+            margin-bottom: 8px;
+        }
+        .message.bot p:last-child {
+            margin-bottom: 0;
+        }
+        .message.bot ul, .message.bot ol {
+            margin-left: 20px;
+            margin-bottom: 8px;
+        }
+        .message.bot h3, .message.bot h2 {
+            font-size: 15px;
+            color: #38bdf8;
+            margin: 6px 0;
         }
         #input-container {
             padding: 12px;
@@ -98,6 +113,8 @@
             100% { opacity: 1; }
         }
     </style>
+    <!-- Include Marked.js for proper Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
@@ -119,10 +136,23 @@
     <script>
         // මෙන්න මෙතනට ඔයාගේ Groq API Key එක දාන්න 👇
         const GROQ_API_KEY = "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"; 
-        const GROQ_MODEL = "llama-3.1-8b-instant";
+        const GROQ_MODEL = "llama-3.3-70b-versatile";
 
         let isRecording = false;
         let recognition = null;
+        let selectedVoice = null;
+
+        // Load Sinhala voice if available in the browser
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            // Try to find a Sinhala voice, or fallback to any available voice
+            selectedVoice = voices.find(v => v.lang.includes('si') || v.lang.includes('sinhala')) || voices[0];
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+            loadVoices();
+        }
 
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -138,19 +168,12 @@
                 sendMessage();
             };
 
-            recognition.onerror = function(event) {
-                stopRecordingUI();
-            };
-
-            recognition.onend = function() {
-                stopRecordingUI();
-            };
+            recognition.onerror = function() { stopRecordingUI(); };
+            recognition.onend = function() { stopRecordingUI(); };
         }
 
         function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
+            if (event.key === 'Enter') { sendMessage(); }
         }
 
         function toggleSpeechRecognition() {
@@ -193,11 +216,11 @@
             const text = inputField.value.trim();
             if (!text) return;
 
-            appendMessage(text, 'user');
+            appendMessage(text, 'user', true);
             inputField.value = '';
 
             const loadingId = 'loading-' + Date.now();
-            appendMessage('සිතමින් පවතී...', 'bot', loadingId);
+            appendMessage('සිතමින් පවතී...', 'bot', false, loadingId);
 
             try {
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -229,27 +252,34 @@
 
                 if (response.ok && data.choices && data.choices.length > 0) {
                     const reply = data.choices[0].message.content;
-                    appendMessage(reply, 'bot');
+                    appendMessage(reply, 'bot', false);
                     speakText(reply);
                 } else {
                     console.error("Groq API Error:", data);
                     const errorMsg = data.error?.message || 'සමාවන්න, දෝෂයක් සිදු විය.';
-                    appendMessage('දෝෂයකි: ' + errorMsg, 'bot');
+                    appendMessage('දෝෂයකි: ' + errorMsg, 'bot', true);
                 }
             } catch (error) {
                 console.error("Network Error:", error);
                 const loadingElement = document.getElementById(loadingId);
                 if (loadingElement) loadingElement.remove();
-                appendMessage('ජාල දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.', 'bot');
+                appendMessage('ජාල දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.', 'bot', true);
             }
         }
 
-        function appendMessage(text, sender, id = null) {
+        function appendMessage(text, sender, isPlainText = false, id = null) {
             const chatContainer = document.getElementById('chat-container');
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${sender}`;
             if (id) msgDiv.id = id;
-            msgDiv.innerText = text;
+
+            if (sender === 'bot' && !isPlainText) {
+                // Use Marked.js to parse markdown nicely (fixes ###, lists, bold text)
+                msgDiv.innerHTML = marked.parse(text);
+            } else {
+                msgDiv.innerText = text;
+            }
+
             chatContainer.appendChild(msgDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
@@ -257,10 +287,18 @@
         function speakText(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const cleanText = text.replace(/<[^>]*>?/gm, '');
+                // Strip markdown formatting symbols before speaking
+                const cleanText = text.replace(/[*#_`~>\[\]()-]/g, '');
                 const utterance = new SpeechSynthesisUtterance(cleanText);
+                
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+                
+                // Fallback attempt to hint Sinhala to browser speech engine
                 utterance.lang = 'si-LK';
-                utterance.rate = 1.0;
+                utterance.rate = 0.9; // Slightly slower for better clarity
+                
                 window.speechSynthesis.speak(utterance);
             }
         }
