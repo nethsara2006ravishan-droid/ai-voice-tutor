@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A/L Voice AI Tutor</title>
+    <title>A/L Voice & Image AI Tutor</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             height: 100dvh;
             display: flex;
@@ -56,6 +52,20 @@
             align-self: flex-end;
             border-bottom-right-radius: 4px;
         }
+        .preview-box {
+            padding: 8px 16px;
+            background: #1e293b;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid #334155;
+        }
+        .preview-box img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
         .input-area {
             padding: 12px 16px;
             background: #1e293b;
@@ -74,9 +84,7 @@
             font-size: 0.95rem;
             outline: none;
         }
-        input[type="text"]:focus {
-            border-color: #6366f1;
-        }
+        input[type="text"]:focus { border-color: #6366f1; }
         button {
             background: #6366f1;
             border: none;
@@ -89,14 +97,12 @@
             align-items: center;
             justify-content: center;
         }
-        button:active {
-            opacity: 0.8;
-        }
         .icon-btn {
             background: transparent;
             padding: 8px;
             border-radius: 50%;
             font-size: 1.2rem;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -104,16 +110,23 @@
 
     <header>
         <span>🎙️</span>
-        <span>A/L Voice AI Tutor</span>
+        <span>A/L Voice & Image AI Tutor</span>
     </header>
 
     <div id="chat-container">
         <div class="message ai-message">
-            ආයුබෝවන්! මයික්‍රෆෝනය ඔබා කතා කර හෝ ෆොටෝ එකක් දමා ප්‍රශ්න අහන්න.
+            ආයුබෝවන්! මයික්‍රෆෝනය ඔබා කතා කර, ෆොටෝ එකක් అಪ್లోಡ್ කර හෝ ප්‍රශ්න අහන්න.
         </div>
     </div>
 
+    <div class="preview-box" id="preview-box">
+        <img id="image-preview" src="" alt="Preview">
+        <span style="font-size: 0.85rem; flex: 1;">ފොටෝ එක සූදානම් කර ඇත</span>
+        <button onclick="clearImage()" style="background: #ef4444; padding: 4px 8px; font-size: 0.8rem;">අයින් කරන්න</button>
+    </div>
+
     <div class="input-area">
+        <input type="file" id="image-input" accept="image/*" style="display: none;">
         <button class="icon-btn" id="image-btn" title="Image">📷</button>
         <button class="icon-btn" id="mic-btn" title="Voice">🎙️</button>
         <input type="text" id="user-input" placeholder="ප්‍රශ්නය ලියන්න හෝ මයික්‍රෆෝනය...">
@@ -121,37 +134,79 @@
     </div>
 
     <script>
-        // මෙතනට ඔයාගේ Google AI Studio එකෙන් ගත්තු API Key එක දාන්න (AIza...)
-        const API_KEY = "AQ.Ab8RN6IolVugR4pwhGr0pbYMK6XWMvD0jNI-7rntFTMR_b3wQQ"; 
-        
-        // යාවත්කාලීන කළ නිවැරදි Model නම
-        const MODEL_NAME = "gemini-3.8-flash";
+        // මෙතනට ඔයාගේ Google AI Studio API Key එක දාන්න
+        const API_KEY = "AQ.Ab8RN6IkAfWOQmdAmO50_WL6OpOfCgRAOQ1q0tvB2aqngTWb3g"; 
+        const MODEL_NAME = "gemini-3.7-flash";
 
         const chatContainer = document.getElementById('chat-container');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         const micBtn = document.getElementById('mic-btn');
+        const imageBtn = document.getElementById('image-btn');
+        const imageInput = document.getElementById('image-input');
+        const previewBox = document.getElementById('preview-box');
+        const imagePreview = document.getElementById('image-preview');
+
+        let selectedImageBase64 = null;
+        let selectedMimeType = null;
+
+        imageBtn.addEventListener('click', () => imageInput.click());
+
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(uploadchool) {
+                    selectedImageBase64 = uploadchool.target.result.split(',')[1];
+                    selectedMimeType = file.type;
+                    imagePreview.src = uploadchool.target.result;
+                    previewBox.style.display = 'flex';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function clearImage() {
+            selectedImageBase64 = null;
+            selectedMimeType = null;
+            imageInput.value = '';
+            previewBox.style.display = 'none';
+        }
 
         async function callGeminiAPI(promptText) {
             if (API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
-                appendMessage("දෝෂය: කරුණාකර කෝඩ් එකේ ඇතුළත නිවැරදි API Key එක ඇතුළත් කරන්න.", "ai-message");
+                appendMessage("දෝෂය: කරුණාකර කෝඩ් එකේ නිවැරදි API Key එක ඇතුළත් කරන්න.", "ai-message");
                 return;
             }
 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
             
-            const data = {
-                contents: [{
-                    parts: [{ text: "ඔබ උසස් පෙළ (A/L) සිංහල මාධ්‍ය සිසුන් සඳහා උදව් කරන දක්ෂ AI ගුරුවරයෙකි. සරලව සහ නිවැරදිව පිළිතුරු දෙන්න. ප්‍රශ්නය: " + promptText }]
-                }]
-            };
+            let parts = [];
+            if (selectedImageBase64) {
+                parts.push({
+                    inline_data: {
+                        mime_type: selectedMimeType,
+                        data: selectedImageBase64
+                    }
+                });
+            }
+            parts.push({ text: "ඔබ උසස් පෙළ (A/L) සිංහල මාධ්‍ය සිසුන් සඳහා උදව් කරන දක්ෂ AI ගුරුවරයෙකි. සරලව සහ නිවැරදිව පිළිතුරු දෙන්න. ප්‍රශ්නය: " + (promptText || "මෙම පින්තූරය පැහැදිලි කරන්න.") });
+
+            const data = { contents: [{ parts: parts }] };
+
+            // UI පෙන්වීම
+            let displayPrompt = promptText;
+            if (selectedImageBase64 && !promptText) displayPrompt = "[පින්තූරයක් යවන ලදී]";
+            else if (selectedImageBase64) displayPrompt = "[පින්තූරය සමඟ] " + promptText;
+
+            appendMessage(displayPrompt, "user-message");
+            userInput.value = "";
+            const currentImg = selectedImageBase64;
+            clearImage();
+
+            appendMessage("කල්පනා කරමින් පවතී...", "ai-message");
 
             try {
-                appendMessage(promptText, "user-message");
-                userInput.value = "";
-                
-                const loadingId = appendMessage("කල්පනා කරමින් පවතී...", "ai-message");
-
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -159,9 +214,7 @@
                 });
 
                 const result = await response.json();
-                
-                // ඉවත්කිරීමට ලක්වූ loading පණිවිඩය මැකීම
-                chatContainer.lastChild.remove();
+                chatContainer.lastChild.remove(); // loading මැකීම
 
                 if (result.candidates && result.candidates[0].content) {
                     const aiReply = result.candidates[0].content.parts[0].text;
@@ -187,7 +240,6 @@
             return msgDiv;
         }
 
-        // Text-to-Speech (ශබ්ද නගා කියවීම)
         function speakText(text) {
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -196,7 +248,6 @@
             }
         }
 
-        // Speech Recognition (කටහඬින් ප්‍රශ්න අසන්න)
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
@@ -214,26 +265,21 @@
                 callGeminiAPI(speechToText);
             };
 
-            recognition.onerror = () => {
-                micBtn.style.color = 'white';
-            };
-            
-            recognition.onend = () => {
-                micBtn.style.color = 'white';
-            };
+            recognition.onerror = () => { micBtn.style.color = 'white'; };
+            recognition.onend = () => { micBtn.style.color = 'white'; };
         } else {
-            micBtn.style.display = 'none'; // බ්‍රවුසරය සපੋਰට් නොකරයි නම් ಮೈක් බටන් එක අයින් වේ
+            micBtn.style.display = 'none';
         }
 
         sendBtn.addEventListener('click', () => {
             const text = userInput.value.trim();
-            if (text) callGeminiAPI(text);
+            if (text || selectedImageBase64) callGeminiAPI(text);
         });
 
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const text = userInput.value.trim();
-                if (text) callGeminiAPI(text);
+                if (text || selectedImageBase64) callGeminiAPI(text);
             }
         });
     </script>
