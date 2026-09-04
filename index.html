@@ -116,9 +116,9 @@
     </div>
 
     <script>
-        // මෙන්න මෙතනට ඔයාගේ අලුත්ම Groq API Key එක දාන්න 👇
-        const GROQ_API_KEY = "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"; 
-        const GROQ_MODEL = "llama3-70b-8192"; // ලියන සහ කතා කරන දේට සුපිරියටම සපෝට් කරන මොඩල් එකක්
+        // මෙන්න මෙතනට ඔයාගේ Groq API Key එක දාන්න 👇
+        const GROQ_API_KEY ="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"; 
+        const GROQ_MODEL = "llama-3.3-70b-versatile"; // Groq වල ස්ටේබල් සහ ලේටස්ට් මොඩල් එක
 
         let isRecording = false;
         let recognition = null;
@@ -148,7 +148,7 @@
 
         function toggleSpeechRecognition() {
             if (!recognition) {
-                alert('ඔබගේ බ්‍රවුසරය කටහඬ හඳුනාගැනීම (Speech Recognition) සඳහා සහය නොදක්වයි.');
+                alert('ඔබගේ බ්‍රවුසරය කටහඬ හඳුනාගැනීම සඳහා සහය නොදක්වයි.');
                 return;
             }
             if (isRecording) {
@@ -189,7 +189,6 @@
             appendMessage(text, 'user');
             inputField.value = '';
 
-            const chatContainer = document.getElementById('chat-container');
             const loadingId = 'loading-' + Date.now();
             appendMessage('සිතමින් පවතී...', 'bot', loadingId);
 
@@ -197,7 +196,7 @@
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${GROQ_API_KEY}`,
+                        'Authorization': `Bearer ${GROQ_API_KEY.trim()}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -218,18 +217,20 @@
 
                 const data = await response.json();
                 
-                // ලෝඩින් මැසේජ් එක අයින් කිරීම
                 const loadingElement = document.getElementById(loadingId);
                 if (loadingElement) loadingElement.remove();
 
-                if (data.choices && data.choices.length > 0) {
+                if (response.ok && data.choices && data.choices.length > 0) {
                     const reply = data.choices[0].message.content;
                     appendMessage(reply, 'bot');
                     speakText(reply);
                 } else {
-                    appendMessage('සමාවන්න, දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.', 'bot');
+                    console.error("Groq API Error:", data);
+                    const errorMsg = data.error?.message || 'සමාවන්න, දෝෂයක් සිදු විය.';
+                    appendMessage('දෝෂයකි: ' + errorMsg, 'bot');
                 }
             } catch (error) {
+                console.error("Network Error:", error);
                 const loadingElement = document.getElementById(loadingId);
                 if (loadingElement) loadingElement.remove();
                 appendMessage('සම්බන්ධතා දෝෂයක් සිදු විය.', 'bot');
