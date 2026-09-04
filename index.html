@@ -2,27 +2,31 @@
 <html lang="si">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>A/L Voice & Image AI Tutor</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
+        html, body {
+            height: 100%;
+            overflow: hidden;
             background: #0f172a;
             color: #f8fafc;
             font-family: system-ui, -apple-system, sans-serif;
         }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
         header {
-            padding: 12px 16px;
+            padding: 10px 16px;
             background: #1e293b;
             display: flex;
             align-items: center;
             gap: 10px;
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             border-bottom: 1px solid #334155;
+            flex-shrink: 0;
         }
         #chat-container {
             flex: 1;
@@ -31,6 +35,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            -webkit-overflow-scrolling: touch;
         }
         .message {
             max-width: 85%;
@@ -59,20 +64,22 @@
             align-items: center;
             gap: 10px;
             border-top: 1px solid #334155;
+            flex-shrink: 0;
         }
         .preview-box img {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             object-fit: cover;
             border-radius: 6px;
         }
         .input-area {
-            padding: 12px 16px;
+            padding: 10px 16px;
             background: #1e293b;
             display: flex;
             align-items: center;
             gap: 8px;
             border-top: 1px solid #334155;
+            flex-shrink: 0;
         }
         input[type="text"] {
             flex: 1;
@@ -115,7 +122,7 @@
 
     <div id="chat-container">
         <div class="message ai-message">
-            ආයුබෝවන්! මයික්‍රෆෝනය ඔබා කතා කර, ෆොටෝ එකක් అಪ್లోಡ್ කර හෝ ප්‍රශ්න අහන්න.
+            ආයුබෝවන්! මයික්‍රෆෝනය ඔබා කතා කර, ෆොටෝ එකක් දමා හෝ ප්‍රශ්න අහන්න.
         </div>
     </div>
 
@@ -135,8 +142,8 @@
 
     <script>
         // මෙතනට ඔයාගේ Google AI Studio API Key එක දාන්න
-        const API_KEY = "AQ.Ab8RN6IkAfWOQmdAmO50_WL6OpOfCgRAOQ1q0tvB2aqngTWb3g"; 
-        const MODEL_NAME = "gemini-3.7-flash";
+        const API_KEY = "YOUR_GEMINI_API_KEY_HERE"; 
+        const MODEL_NAME = "gemini-1.5-flash"; // වඩාත්ම ස්ථාවර සහ වේගවත් මොඩලය
 
         const chatContainer = document.getElementById('chat-container');
         const userInput = document.getElementById('user-input');
@@ -156,10 +163,10 @@
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(uploadchool) {
-                    selectedImageBase64 = uploadchool.target.result.split(',')[1];
+                reader.onload = function(uploadEvent) {
+                    selectedImageBase64 = uploadEvent.target.result.split(',')[1];
                     selectedMimeType = file.type;
-                    imagePreview.src = uploadchool.target.result;
+                    imagePreview.src = uploadEvent.target.result;
                     previewBox.style.display = 'flex';
                 };
                 reader.readAsDataURL(file);
@@ -174,7 +181,7 @@
         }
 
         async function callGeminiAPI(promptText) {
-            if (API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
+            if (API_KEY === "AQ.Ab8RN6IkAfWOQmdAmO50_WL6OpOfCgRAOQ1q0tvB2aqngTWb3g") {
                 appendMessage("දෝෂය: කරුණාකර කෝඩ් එකේ නිවැරදි API Key එක ඇතුළත් කරන්න.", "ai-message");
                 return;
             }
@@ -194,17 +201,15 @@
 
             const data = { contents: [{ parts: parts }] };
 
-            // UI පෙන්වීම
             let displayPrompt = promptText;
             if (selectedImageBase64 && !promptText) displayPrompt = "[පින්තූරයක් යවන ලදී]";
             else if (selectedImageBase64) displayPrompt = "[පින්තූරය සමඟ] " + promptText;
 
             appendMessage(displayPrompt, "user-message");
             userInput.value = "";
-            const currentImg = selectedImageBase64;
             clearImage();
 
-            appendMessage("කල්පනා කරමින් පවතී...", "ai-message");
+            const loadingId = appendMessage("කල්පනා කරමින් පවතී...", "ai-message");
 
             try {
                 const response = await fetch(url, {
@@ -214,7 +219,7 @@
                 });
 
                 const result = await response.json();
-                chatContainer.lastChild.remove(); // loading මැකීම
+                chatContainer.removeChild(loadingId);
 
                 if (result.candidates && result.candidates[0].content) {
                     const aiReply = result.candidates[0].content.parts[0].text;
@@ -223,10 +228,10 @@
                 } else if (result.error) {
                     appendMessage("දෝෂය: " + result.error.message, "ai-message");
                 } else {
-                    appendMessage("ප්‍රතිචාරයක් ලබා ගැනීමට නොහැකි විය.", "ai-message");
+                    appendMessage("ප්‍රතිචාරයක් ලබා ගැනීමට නොහැකි විය. කරුණාකර තව මොහොතකින් උත්සාහ කරන්න.", "ai-message");
                 }
             } catch (error) {
-                chatContainer.lastChild.remove();
+                chatContainer.removeChild(loadingId);
                 appendMessage("ජාල දෝෂයක් සිදු විය: " + error.message, "ai-message");
             }
         }
@@ -242,6 +247,7 @@
 
         function speakText(text) {
             if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // කලින් කතා කරමින් තිබුනොත් නවත්වයි
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'si-LK';
                 window.speechSynthesis.speak(utterance);
@@ -255,8 +261,10 @@
             recognition.interimResults = false;
 
             micBtn.addEventListener('click', () => {
-                recognition.start();
-                micBtn.style.color = '#ef4444';
+                try {
+                    recognition.start();
+                    micBtn.style.color = '#ef4444';
+                } catch(e) { console.log(e); }
             });
 
             recognition.onresult = (event) => {
