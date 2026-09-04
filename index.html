@@ -42,8 +42,9 @@
             padding: 10px 14px;
             border-radius: 12px;
             font-size: 14px;
-            line-height: 1.5;
+            line-height: 1.6;
             word-wrap: break-word;
+            white-space: pre-wrap;
         }
         .message.bot {
             background: #1e293b;
@@ -110,15 +111,15 @@
     </div>
 
     <div id="input-container">
-        <input type="text" id="user-input" placeholder="ප්‍රශ්නයක් මෙහි ලියන්න හෝ මයික්‍රෆෝනය ඔබන්න...">
+        <input type="text" id="user-input" placeholder="ප්‍රශ්නයක් මෙහි ලියන්න හෝ මයික්‍රෆෝනය ඔබන්න..." onkeypress="handleKeyPress(event)">
         <button id="mic-btn" onclick="toggleSpeechRecognition()">🎤 කතා කරන්න</button>
         <button onclick="sendMessage()">යවන්න</button>
     </div>
 
     <script>
         // මෙන්න මෙතනට ඔයාගේ Groq API Key එක දාන්න 👇
-        const GROQ_API_KEY = "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"; 
-        const GROQ_MODEL = "openai/gpt-oss-20b";
+        const GROQ_API_KEY = "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"; 
+        const GROQ_MODEL = "llama-3.1-8b-instant";
 
         let isRecording = false;
         let recognition = null;
@@ -146,6 +147,12 @@
             };
         }
 
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
         function toggleSpeechRecognition() {
             if (!recognition) {
                 alert('ඔබගේ බ්‍රවුසරය කටහඬ හඳුනාගැනීම සඳහා සහය නොදක්වයි.');
@@ -170,7 +177,7 @@
             const micBtn = document.getElementById('mic-btn');
             micBtn.classList.add('recording');
             micBtn.innerText = '🛑 නතර කරන්න';
-            document.getElementById('user-input').placeholder = "श्रවණය කරමින් පවතී...";
+            document.getElementById('user-input').placeholder = "ශ්‍රවණය කරමින් පවතී...";
         }
 
         function stopRecordingUI() {
@@ -193,10 +200,8 @@
             appendMessage('සිතමින් පවතී...', 'bot', loadingId);
 
             try {
-                // CORS ප්‍රශ්නය මඟහරවා ගැනීමට proxy හරහා හෝ mode වෙනස් කර රික්වෙස්ට් යැවීම
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
-                    mode: 'cors',
                     headers: {
                         'Authorization': `Bearer ${GROQ_API_KEY.trim()}`,
                         'Content-Type': 'application/json'
@@ -206,14 +211,14 @@
                         messages: [
                             {
                                 role: "system",
-                                content: "You are a helpful A/L educational AI tutor in Sri Lanka. Always reply in clear Sinhala language."
+                                content: "ඔබ ශ්‍රී ලංකාවේ උසස් පෙළ (A/L) විෂයයන් උගන්වන AI ගුරුවරයෙක් වෙයි. ඔබ සැමවිටම ඉතා පැහැදිලි සිංහල භාෂාවෙන් පමණක් පිළිතුරු දිය යුතුය. කිසිවිටෙකත් ඉංග්‍රීසියෙන් පිළිතුරු ලබා නොදෙන්න."
                             },
                             {
                                 role: "user",
                                 content: text
                             }
                         ],
-                        temperature: 0.7
+                        temperature: 0.5
                     })
                 });
 
@@ -232,10 +237,10 @@
                     appendMessage('දෝෂයකි: ' + errorMsg, 'bot');
                 }
             } catch (error) {
-                console.error("Network/CORS Error:", error);
+                console.error("Network Error:", error);
                 const loadingElement = document.getElementById(loadingId);
                 if (loadingElement) loadingElement.remove();
-                appendMessage('ජාල දෝෂයක් (Network/CORS) සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.', 'bot');
+                appendMessage('ජාල දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.', 'bot');
             }
         }
 
