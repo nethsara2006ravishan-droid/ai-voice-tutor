@@ -1,11 +1,8 @@
 <!DOCTYPE html>
 <html lang="si">
 <head>
-    <header>
-        <span>🧠</span>
-        <span>My AI Mind (A/L Tutor Core)</span>
-    </header>
-    <meta charset=""viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A/L Voice AI Tutor</title>
     <style>
         * {
@@ -23,190 +20,124 @@
             overflow: hidden;
         }
         header {
-            background: #1e1b4b;
-            color: white;
-            padding: 10px 14px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 15px;
-            border-bottom: 1px solid #334155;
+            padding: 12px 16px;
+            background: #1e293b;
             display: flex;
-            justify-content: center;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            border-bottom: 1px solid #334155;
         }
         #chat-container {
             flex: 1;
             overflow-y: auto;
-            padding: 12px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            scroll-behavior: smooth;
+            gap: 12px;
         }
-        .message-box {
+        .message {
+            max-width: 85%;
             padding: 10px 14px;
             border-radius: 12px;
-            max-width: 88%;
-            font-size: 13.5px;
+            font-size: 14px;
             line-height: 1.5;
-            word-break: break-word;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            word-wrap: break-word;
         }
-        .user-msg {
-            background: #4f46e5;
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 2px;
-        }
-        .ai-msg {
+        .message.bot {
             background: #1e293b;
-            color: #f1f5f9;
             align-self: flex-start;
             border-bottom-left-radius: 2px;
             border: 1px solid #334155;
         }
-        .input-panel {
-            background: #0f172a;
+        .message.user {
+            background: #3b82f6;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+        #input-container {
+            padding: 12px;
+            background: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             border-top: 1px solid #334155;
-            padding: 8px 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
         }
-        #image-preview-container {
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            padding: 4px 8px;
-            background: #312e81;
-            border-radius: 8px;
-            font-size: 12px;
-        }
-        .input-row {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-        .action-btn {
-            background: #4f46e5;
-            color: white;
-            border: none;
+        #user-input {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 20px;
             padding: 10px 14px;
-            border-radius: 10px;
+            color: #f8fafc;
+            font-size: 14px;
+            outline: none;
+        }
+        #user-input::placeholder {
+            color: #64748b;
+        }
+        button {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 20px;
+            font-weight: bold;
             cursor: pointer;
             font-size: 14px;
-            font-weight: bold;
         }
-        .tool-btn {
-            background: #1e293b;
-            color: #cbd5e1;
-            border: 1px solid #475569;
-            padding: 10px 12px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 15px;
-        }
-        .tool-btn.recording {
-            background: #dc2626;
-            color: white;
-            border-color: #ef4444;
-            animation: pulse 1.2s infinite;
+        button#mic-btn.recording {
+            background: #ef4444;
+            animation: pulse 1.5s infinite;
         }
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.08); }
-            100% { transform: scale(1); }
-        }
-        input[type="text"] {
-            flex: 1;
-            border: 1px solid #475569;
-            border-radius: 10px;
-            padding: 10px 12px;
-            outline: none;
-            font-size: 13.5px;
-            background: #1e293b;
-            color: white;
-        }
-        pre code {
-            display: block;
-            background-color: #020617;
-            color: #38bdf8;
-            padding: 8px;
-            border-radius: 6px;
-            overflow-x: auto;
-            font-family: monospace;
-            margin: 6px 0;
-        }
-        .speak-btn {
-            background: none;
-            border: none;
-            color: #38bdf8;
-            cursor: pointer;
-            font-size: 12px;
-            margin-top: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-weight: 600;
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
 <body>
 
     <header>
-        🎙️ A/L Voice AI Tutor
+        <span>🧠</span>
+        <span>A/L Voice AI Tutor (Groq)</span>
     </header>
 
     <div id="chat-container">
-        <div class="message-box ai-msg">
-            ආයුබෝවන්! මයික්‍රෆෝනය ඔබා කතා කර හෝ ෆොටෝ එකක් දමා ප්‍රශ්න අහන්න.
-        </div>
+        <div class="message bot">ආයුබෝවන්! මම ඔබේ A/L AI ටියුටර්. ඔබට අවශ්‍ය ප්‍රශ්නයක් අසන්න.</div>
     </div>
 
-    <div class="input-panel">
-        <div id="image-preview-container">
-            <span id="file-name" style="color: #e0e7ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
-            <button onclick="removeImage()" style="background: none; border: none; color: #fca5a5; font-size: 11px; cursor: pointer; font-weight: bold;">ඉවත් කරන්න</button>
-        </div>
-
-        <div class="input-row">
-            <input type="file" id="image-input" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
-            
-            <button class="tool-btn" onclick="document.getElementById('image-input').click()" title="ፎටෝ එකක් එකතු කරන්න">
-                📷
-            </button>
-            
-            <button id="mic-btn" class="tool-btn" onclick="toggleSpeechRecognition()" title="කතා කරන්න">
-                🎤
-            </button>
-            
-            <input type="text" id="user-input" placeholder="ප්‍රශ්නය ලියන්න හෝ මයික්‍රෆෝන් ඔබන්න..." onkeypress="handleKeyPress(event)">
-            
-            <button class="action-btn" onclick="sendMessage()">යවන්න</button>
-        </div>
+    <div id="input-container">
+        <input type="text" id="user-input" placeholder="ප්‍රශ්නයක් මෙහි ලියන්න හෝ මයික්‍රෆෝනය ඔබන්න...">
+        <button id="mic-btn" onclick="toggleSpeechRecognition()">🎤 කතා කරන්න</button>
+        <button onclick="sendMessage()">යවන්න</button>
     </div>
+
     <script>
-        const API_KEY = "AQ.Ab8RN6JnwxajDMUGrtRNbx1PS0tZJLPbmg7adcMfaRExU_DWsA"; // ඔබේ API Key එක මෙහි ඇතුළත් කරන්න
-        let base64Image = null;
-        let recognition = null;
+        // මෙන්න මෙතනට ඔයාගේ අලුත්ම Groq API Key එක දාන්න 👇
+        const GROQ_API_KEY = "MENTANTA_API_KEY_EKA_DALA_ANNA"; 
+        const GROQ_MODEL = "llama3-70b-8192"; // ලියන සහ කතා කරන දේට සුපිරියටම සපෝට් කරන මොඩල් එකක්
+
         let isRecording = false;
+        let recognition = null;
 
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             recognition.lang = 'si-LK';
+            recognition.continuous = false;
             recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
 
             recognition.onresult = function(event) {
-                const speechResult = event.results[0][0].transcript;
-                document.getElementById('user-input').value = speechResult;
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('user-input').value = transcript;
                 stopRecordingUI();
                 sendMessage();
             };
 
-            recognition.onerror = function() {
+            recognition.onerror = function(event) {
                 stopRecordingUI();
             };
 
@@ -217,12 +148,12 @@
 
         function toggleSpeechRecognition() {
             if (!recognition) {
-                alert("ඔබේ බ්‍රව්සරය මඟින් හඬ හඳුනාගැනීම සඳහා සහය නොදක්වයි. කරුණාකර Google Chrome භාවිත කරන්න.");
+                alert('ඔබගේ බ්‍රවුසරය කටහඬ හඳුනාගැනීම (Speech Recognition) සඳහා සහය නොදක්වයි.');
                 return;
             }
-
             if (isRecording) {
                 recognition.stop();
+                stopRecordingUI();
             } else {
                 try {
                     recognition.start();
@@ -238,165 +169,92 @@
             isRecording = true;
             const micBtn = document.getElementById('mic-btn');
             micBtn.classList.add('recording');
-            document.getElementById('user-input').placeholder = "සවන් දෙමින් පවතී... කතා කරන්න...";
+            micBtn.innerText = '🛑 නතර කරන්න';
+            document.getElementById('user-input').placeholder = "श्रවණය කරමින් පවතී...";
         }
 
         function stopRecordingUI() {
             isRecording = false;
             const micBtn = document.getElementById('mic-btn');
             micBtn.classList.remove('recording');
-            document.getElementById('user-input').placeholder = "ප්‍රශ්නය ලියන්න හෝ මයික්‍රෆෝන් ඔබන්න...";
+            micBtn.innerText = '🎤 කතා කරන්න';
+            document.getElementById('user-input').placeholder = "ප්‍රශ්නයක් මෙහි ලියන්න හෝ මයික්‍රෆෝනය ඔබන්න...";
+        }
+
+        async function sendMessage() {
+            const inputField = document.getElementById('user-input');
+            const text = inputField.value.trim();
+            if (!text) return;
+
+            appendMessage(text, 'user');
+            inputField.value = '';
+
+            const chatContainer = document.getElementById('chat-container');
+            const loadingId = 'loading-' + Date.now();
+            appendMessage('සිතමින් පවතී...', 'bot', loadingId);
+
+            try {
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${GROQ_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: GROQ_MODEL,
+                        messages: [
+                            {
+                                role: "system",
+                                content: "You are a helpful A/L educational AI tutor in Sri Lanka. Always reply in clear Sinhala language."
+                            },
+                            {
+                                role: "user",
+                                content: text
+                            }
+                        ],
+                        temperature: 0.7
+                    })
+                });
+
+                const data = await response.json();
+                
+                // ලෝඩින් මැසේජ් එක අයින් කිරීම
+                const loadingElement = document.getElementById(loadingId);
+                if (loadingElement) loadingElement.remove();
+
+                if (data.choices && data.choices.length > 0) {
+                    const reply = data.choices[0].message.content;
+                    appendMessage(reply, 'bot');
+                    speakText(reply);
+                } else {
+                    appendMessage('සමාවන්න, දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.', 'bot');
+                }
+            } catch (error) {
+                const loadingElement = document.getElementById(loadingId);
+                if (loadingElement) loadingElement.remove();
+                appendMessage('සම්බන්ධතා දෝෂයක් සිදු විය.', 'bot');
+            }
+        }
+
+        function appendMessage(text, sender, id = null) {
+            const chatContainer = document.getElementById('chat-container');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}`;
+            if (id) msgDiv.id = id;
+            msgDiv.innerText = text;
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
         function speakText(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/[*#_]/g, '');
+                const cleanText = text.replace(/<[^>]*>?/gm, '');
                 const utterance = new SpeechSynthesisUtterance(cleanText);
                 utterance.lang = 'si-LK';
                 utterance.rate = 1.0;
                 window.speechSynthesis.speak(utterance);
             }
-        }
-
-        function handleImageSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    base64Image = e.target.result.split(',')[1];
-                    document.getElementById('file-name').innerText = "📷 " + file.name;
-                    document.getElementById('image-preview-container').style.display = 'flex';
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function removeImage() {
-            base64Image = null;
-            document.getElementById('image-input').value = '';
-            document.getElementById('image-preview-container').style.display = 'none';
-        }
-
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        }
-
-        async function sendMessage() {
-            const inputField = document.getElementById('user-input');
-            const chatContainer = document.getElementById('chat-container');
-            const userText = inputField.value.trim();
-
-            if (!userText && !base64Image) return;
-
-            let userHtmlContent = userText ? `<div>${escapeHtml(userText)}</div>` : '';
-            if (base64Image) {
-                userHtmlContent += `<div style="margin-top: 4px;"><span style="font-size: 10px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; color: #a5b4fc; font-weight: bold;">📷 පින්තූරයක් ඇත</span></div>`;
-            }
-
-            chatContainer.innerHTML += `
-                <div style="display: flex; justify-content: flex-end;">
-                    <div class="message-box user-msg">${userHtmlContent}</div>
-                </div>
-            `;
-
-            inputField.value = '';
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            const loadingId = 'loading-' + Date.now();
-            chatContainer.innerHTML += `
-                <div id="${loadingId}" style="display: flex; justify-content: flex-start;">
-                    <div class="message-box ai-msg" style="color: #94a3b8;">සිතමින් පවතී...</div>
-                </div>
-            `;
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-
-            try {
-                let parts = [];
-                let promptText = "ශ්‍රී ලංකා උසස් පෙළ (A/L) විෂය නිර්දේශයට අදාළ දක්ෂ ගුරුවරයෙක් ලෙස, සිසුන්ට පහසුවෙන් වැටහෙන පරිදි පියවරෙන් පියවර (Step-by-step), පැහැදිලි ඡේද සහ ලැයිස්තු වලට වෙන් කර සිංහලෙන් පිළිතුරු දෙන්න: " + (userText || "මෙම ප්‍රශ්නය/පින්තූරය පැහැදිලි කරන්න.");
-                
-                parts.push({ text: promptText });
-
-                if (base64Image) {
-                    parts.push({
-                        inline_data: {
-                            mime_type: "image/jpeg",
-                            data: base64Image
-                        }
-                    });
-                }
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent?key=${API_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: parts }] })
-                });
-
-                const data = await response.json();
-                const loadingElem = document.getElementById(loadingId);
-                if (loadingElem) loadingElem.remove();
-
-                removeImage();
-
-                if (data.error) {
-                    throw new Error(data.error.message);
-                }
-
-                if (data.candidates && data.candidates.length > 0) {
-                    let aiReply = data.candidates[0].content.parts[0].text;
-                    
-                    let formattedReply = aiReply
-                        .replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;")
-                        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\n/g, '<br>');
-
-                    const messageId = 'ai-msg-' + Date.now();
-                    chatContainer.innerHTML += `
-                        <div style="display: flex; justify-content: flex-start;">
-                            <div class="message-box ai-msg" id="${messageId}">
-                                <div>${formattedReply}</div>
-                                <button class="speak-btn" onclick="speakTextFromElement('${messageId}')">🔊 ශබ්ද නඟා අසන්න</button>
-                            </div>
-                        </div>
-                    `;
-
-                    speakText(aiReply);
-
-                } else {
-                    chatContainer.innerHTML += `
-                        <div style="display: flex; justify-content: flex-start;">
-                            <div class="message-box ai-msg" style="color: #fca5a5;">පිළිතුරක් ලැබී නැත.</div>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                const loadingElem = document.getElementById(loadingId);
-                if (loadingElem) loadingElem.remove();
-                chatContainer.innerHTML += `
-                    <div style="display: flex; justify-content: flex-start;">
-                        <div class="message-box ai-msg" style="color: #fca5a5;">දෝෂයකි: ${error.message}</div>
-                    </div>
-                `;
-            }
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        function speakTextFromElement(elementId) {
-            const el = document.getElementById(elementId);
-            if (el) {
-                const clone = el.cloneNode(true);
-                const btn = clone.querySelector('.speak-btn');
-                if (btn) btn.remove();
-                speakText(clone.innerText);
-            }
-        }
-
-        function escapeHtml(text) {
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
     </script>
 </body>
