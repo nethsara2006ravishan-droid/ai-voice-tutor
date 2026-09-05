@@ -159,23 +159,23 @@
     </div>
 
     <script>
-function getApiKey() {
-    let key = localStorage.getItem('gemini_api_key');
-    if (!key) {
-        key = prompt("කරුණාකර ඔබගේ Gemini API Key එක ඇතුළත් කරන්න:");
-        if (key) {
-            localStorage.setItem('gemini_api_key', key.trim());
+        // LocalStorage එකෙන් Key එක ලබා ගැනීම (මුල් වතාවේදී ඇසීම)
+        function getApiKey() {
+            let key = localStorage.getItem('gemini_api_key');
+            if (!key) {
+                key = prompt("කරුණාකර ඔබගේ Gemini API Key එක ඇතුළත් කරන්න:");
+                if (key) {
+                    localStorage.setItem('gemini_api_key', key.trim());
+                }
+            }
+            return key ? key.trim() : "";
         }
-    }
-    return key ? key.trim() : "";
-}
-
-
 
         let isRecording = false;
         let isVoiceEnabled = true;
         let recognition = null;
         let selectedVoice = null;
+        const GEMINI_MODEL = "gemini-1.5-flash";
 
         function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
@@ -232,7 +232,7 @@ function getApiKey() {
                 stopRecordingUI();
             } else {
                 try {
-                    window.speechSynthesis.cancel(); // Stop speaking if talking
+                    window.speechSynthesis.cancel();
                     recognition.start();
                     startRecordingUI();
                 } catch (e) {
@@ -266,63 +266,47 @@ function getApiKey() {
             appendMessage(text, 'user', true);
             inputField.value = '';
 
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                alert("API Key එකක් ලබා දී නැත!");
+                return;
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+
             const loadingId = 'loading-' + Date.now();
             appendMessage('සිතමින් පවතී...', 'bot', false, loadingId);
 
             try {
-                const response =async function sendMessage() {
-    const inputField = document.getElementById('user-input');
-    const text = inputField.value;
-    if (!text) return;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        contents: [
+                            {
+                                parts: [
+                                    { text: text }
+                                ]
+                            }
+                        ]
+                    })
+                });
 
-    appendMessage(text, 'user', true);
-    inputField.value = '';
-
-    // අන්න මෙතනට දාන්න 👇
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        alert("API Key එකක් ලබා දී නැත!");
-        return;
-    }
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-
-    const loadingId = 'loading-' + Date.now();
-    appendMessage('සිතමින් පවතී...', 'bot', false, loadingId);
-
-    try {
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            contents: [
-                {
-                    parts: [
-                        { text: text }
-                    ]
-                }
-            ]
-        })
-    });
-
-    const data = await response.json();
-    
-    // ඊටපස්සේ ලැබෙන රෙස්පොන්ස් එක UI එකට දාන පරණ කෝඩ් එක මෙතනින් පස්සට තියෙන්න හරින්න...//
+                const data = await response.json();
                 
                 const loadingElement = document.getElementById(loadingId);
                 if (loadingElement) loadingElement.remove();
 
                 if (response.ok && data.candidates && data.candidates[0].content) {
-    const reply = data.candidates[0].content.parts[0].text;
-    appendMessage(reply, 'bot', false, loadingId);
-    if (isVoiceEnabled) {
-        speakText(reply);
-    }
-}
-
+                    const reply = data.candidates[0].content.parts[0].text;
+                    appendMessage(reply, 'bot', false);
+                    if (isVoiceEnabled) {
+                        speakText(reply);
+                    }
                 } else {
-                    console.error("Groq API Error:", data);
+                    console.error("Gemini API Error:", data);
                     const errorMsg = data.error?.message || 'සමාවන්න, දෝෂයක් සිදු විය.';
                     appendMessage('දෝෂයකි: ' + errorMsg, 'bot', true);
                 }
@@ -353,7 +337,6 @@ function getApiKey() {
         function speakText(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                // Clean markdown/HTML symbols so voice engine doesn't read them out loud weirdly
                 const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
                 const utterance = new SpeechSynthesisUtterance(cleanText);
                 
