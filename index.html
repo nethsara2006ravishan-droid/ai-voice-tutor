@@ -226,6 +226,16 @@
         let selectedVoice = null;
         const GEMINI_MODEL = "gemini-3.7-flash";
 
+        // Global state to track active speech
+        let currentSpeechState = {
+            sentences: [],
+            currentIndex: 0,
+            isPlaying: false,
+            isPaused: false,
+            speakBtn: null,
+            utterance: null
+        };
+
         function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
             selectedVoice = voices.find(v => v.lang.includes('si') || v.lang.includes('sinhala')) || voices[0];
@@ -250,23 +260,14 @@
 
             const stopBtn = document.createElement('button');
             stopBtn.className = 'action-btn stop-btn';
-            stopBtn.innerHTML = '⏹️ නවත්වන්න';
+            stopBtn.innerHTML = '⏹️ මුලටම යන්න';
 
             speakBtn.onclick = function() {
-                if (window.speechSynthesis.paused && window.speechSynthesis.speaking) {
-                    window.speechSynthesis.resume();
-                    speakBtn.innerHTML = '⏸️ නවත්වන්න';
-                } else if (!window.speechSynthesis.speaking) {
-                    startSpeech(welcomeText, speakBtn);
-                } else {
-                    window.speechSynthesis.pause();
-                    speakBtn.innerHTML = '▶️ දිගටම අහන්න';
-                }
+                handlePlayPause(welcomeText, speakBtn);
             };
 
             stopBtn.onclick = function() {
-                window.speechSynthesis.cancel();
-                speakBtn.innerHTML = '🔊 අහන්න';
+                stopSpeech(speakBtn);
             };
 
             btnGroup.appendChild(speakBtn);
@@ -277,7 +278,9 @@
         async function toggleAudioRecording() {
             if (!isRecording) {
                 try {
-                    window.speechSynthesis.cancel();
+                    if (currentSpeechState.speakBtn) {
+                        stopSpeech(currentSpeechState.speakBtn);
+                    }
 
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
@@ -330,7 +333,9 @@
             const inputField = document.getElementById('user-input');
             const text = inputField.value.trim();
             if (!text) return;
-            window.speechSynthesis.cancel();
+            if (currentSpeechState.speakBtn) {
+                stopSpeech(currentSpeechState.speakBtn);
+            }
             inputField.value = '';
             await processGeminiRequest(text, null);
         }
@@ -420,23 +425,14 @@
 
                     const stopBtn = document.createElement('button');
                     stopBtn.className = 'action-btn stop-btn';
-                    stopBtn.innerHTML = '⏹️ නවත්වන්න';
+                    stopBtn.innerHTML = '⏹️ මුලටම යන්න';
 
                     speakBtn.onclick = function() {
-                        if (window.speechSynthesis.paused && window.speechSynthesis.speaking) {
-                            window.speechSynthesis.resume();
-                            speakBtn.innerHTML = '⏸️ නවත්වන්න';
-                        } else if (!window.speechSynthesis.speaking) {
-                            startSpeech(text, speakBtn);
-                        } else {
-                            window.speechSynthesis.pause();
-                            speakBtn.innerHTML = '▶️ දිගටම අහන්න';
-                        }
+                        handlePlayPause(text, speakBtn);
                     };
 
                     stopBtn.onclick = function() {
-                        window.speechSynthesis.cancel();
-                        speakBtn.innerHTML = '🔊 අහන්න';
+                        stopSpeech(speakBtn);
                     };
 
                     btnGroup.appendChild(speakBtn);
@@ -451,13 +447,50 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function startSpeech(text, btn) {
+        function handlePlayPause(text, btn) {
             if (!('speechSynthesis' in window)) return;
 
-            window.speechSynthesis.cancel();
+            // If a different message is being played, stop it first
+            if (currentSpeechState.speakBtn && currentSpeechState.speakBtn !== btn) {
+                stopSpeech(currentSpeechState.speakBtn);
+            }
 
-            const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
-            const utterance = new SpeechSynthesisUtterance(cleanText);
+            if (currentSpeechState.isPlaying) {
+                // Pause current playback
+                window.speechSynthesis.cancel();
+                currentSpeechState.isPlaying = false;
+                currentSpeechState.isPaused = true;
+                btn.innerHTML = '▶️ දිගටම අහන්න';
+            } else {
+                // Resume or start fresh
+                if (!currentSpeechState.isPaused || currentSpeechState.sentences.length === 0) {
+                    // Start from beginning
+                    const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
+                    // Split text into sentences by period, question mark, exclamation, or newline
+                    currentSpeechState.sentences = cleanText.split(/(?<=[.?!;\n])\s+/).filter(s => s.trim().length > 0);
+                    currentSpeechState.currentIndex = 0;
+                }
+
+                currentSpeechState.speakBtn = btn;
+                currentSpeechState.isPaused = false;
+                playNextSentence();
+            }
+        }
+
+        function playNextSentence() {
+            if (!currentSpeechState.speakBtn) return;
+
+            if (currentSpeechState.currentIndex >= currentSpeechState.sentences.length) {
+                // Finished all sentences
+                currentSpeechState.isPlaying = false;
+                currentSpeechState.isPaused = false;
+                currentSpeechState.speakBtn.innerHTML = '🔊 අහන්න';
+                currentSpeechState.currentIndex = 0;
+                return;
+            }
+
+            const sentence = currentSpeechState.sentences[currentSpeechState.currentIndex];
+            const utterance = new SpeechSynthesisUtterance(sentence);
             
             if (selectedVoice) {
                 utterance.voice = selectedVoice;
@@ -466,17 +499,34 @@
             utterance.lang = 'si-LK';
             utterance.rate = 0.9;
 
-            btn.innerHTML = '⏸️ නවත්වන්න';
+            currentSpeechState.isPlaying = true;
+            currentSpeechState.speakBtn.innerHTML = '⏸️ නවත්වන්න';
 
             utterance.onend = function() {
-                btn.innerHTML = '🔊 අහන්න';
+                if (currentSpeechState.isPlaying) {
+                    currentSpeechState.currentIndex++;
+                    playNextSentence();
+                }
             };
 
             utterance.onerror = function() {
-                btn.innerHTML = '🔊 අහන්න';
+                currentSpeechState.isPlaying = false;
+                currentSpeechState.speakBtn.innerHTML = '🔊 අහන්න';
             };
 
             window.speechSynthesis.speak(utterance);
+        }
+
+        function stopSpeech(btn) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            currentSpeechState.isPlaying = false;
+            currentSpeechState.isPaused = false;
+            currentSpeechState.currentIndex = 0;
+            if (btn) {
+                btn.innerHTML = '🔊 අහන්න';
+            }
         }
     </script>
 </body>
