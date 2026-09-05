@@ -139,7 +139,6 @@
             cursor: pointer;
             font-size: 14px;
         }
-        /* Fixed Mic Button style as requested */
         #mic-btn {
             width: 100%;
             background: #3b82f6;
@@ -178,11 +177,11 @@
     </header>
 
     <div id="chat-container">
-        <div class="message bot">ආයුබෝවන්! මම ශ්‍රී ලංකා උසස් පෙළ (A/L) ඕනෑම විෂයයක් සඳහා උගන්වන AI ටියුටර්. ඔබට අවශ්‍ය ප්‍රශ්නයක් ටයිප් කර හෝ පහත මයික් බටන් එක ඔබා කතා කර අසන්න.</div>
+        <div class="message bot">ආයුබෝවන්! මම ඔබගේ A/L අධ්‍යයන සහಾಯಕ AI ගුරුවරයා. භෞතික විද්‍යාව (Physics), සංයුක්ත ගණිතය (Combined Maths), රසායන විද්‍යාව (Chemistry), ජීව විද්‍යාව (Biology), ICT ඇතුළු ඕනෑම A/L විෂයයකට මගෙන් ප්‍රශ්න අසන්න පුළුවන්.</div>
     </div>
 
     <div id="input-container">
-        <button id="mic-btn" onclick="toggleSpeechRecognition()">
+        <button id="mic-btn" type="button" onclick="handleMicClick()">
             <span style="font-size: 22px;">🎙️</span> 
             <span id="mic-text">කතා කරන්න</span>
         </button>
@@ -219,47 +218,52 @@
             loadVoices();
         }
 
-        // Improved speech recognition initialization with fallback handling
-        function initSpeechRecognition() {
+        function initRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
                 return null;
             }
-            const rec = new SpeechRecognition();
-            rec.lang = 'si-LK';
-            rec.continuous = false;
-            rec.interimResults = false;
+            try {
+                const rec = new SpeechRecognition();
+                rec.lang = 'si-LK';
+                rec.continuous = false;
+                rec.interimResults = true;
 
-            rec.onresult = function(event) {
-                const transcript = event.results[0][0].transcript;
-                document.getElementById('user-input').value = transcript;
-                stopRecordingUI();
-                sendMessage();
-            };
+                rec.onresult = function(event) {
+                    let transcript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        transcript += event.results[i][0].transcript;
+                    }
+                    document.getElementById('user-input').value = transcript;
+                };
 
-            rec.onerror = function(event) {
-                console.error("Speech Recognition Error:", event.error);
-                stopRecordingUI();
-            };
-            
-            rec.onend = function() {
-                stopRecordingUI();
-            };
-            return rec;
+                rec.onerror = function(event) {
+                    console.error("Speech Rec Error:", event.error);
+                    stopRecordingUI();
+                };
+                
+                rec.onend = function() {
+                    stopRecordingUI();
+                    const val = document.getElementById('user-input').value.trim();
+                    if (val) {
+                        sendMessage();
+                    }
+                };
+                return rec;
+            } catch (e) {
+                console.error("Init speech rec failed:", e);
+                return null;
+            }
         }
 
-        recognition = initSpeechRecognition();
+        recognition = initRecognition();
 
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') { sendMessage(); }
-        }
-
-        function toggleSpeechRecognition() {
+        function handleMicClick() {
             if (!recognition) {
-                // Fallback if browser speech recognition fails or isn't supported
-                alert('ඔබගේ බ්‍රවුසරය හඬ හඳුනාගැනීමට (Speech Recognition) සෘජුව සහය නොදක්වයි. කරුණාකර කීබෝඩ් එකෙන් ටයිප් කරන්න.');
+                alert("ඔබගේ බ්‍රවුසරය (Browser) හඬ හඳුනාගැනීමට (Speech Recognition) සෘජුව සහය නොදක්වයි. කරුණාකර ටයිප් කර යවන්න.");
                 return;
             }
+
             if (isRecording) {
                 try {
                     recognition.stop();
@@ -268,17 +272,17 @@
             } else {
                 try {
                     window.speechSynthesis.cancel();
+                    document.getElementById('user-input').value = '';
                     recognition.start();
                     startRecordingUI();
                 } catch (e) {
-                    console.error("Mic start error:", e);
-                    // Re-initialize if state gets stuck
-                    recognition = initSpeechRecognition();
+                    console.error("Start failed:", e);
+                    recognition = initRecognition();
                     try {
                         recognition.start();
                         startRecordingUI();
-                    } catch(err) {
-                        alert("මයික්‍රෆෝනය ක්‍රියාත්මක කිරීමේදී දෝෂයක් මතු විය. කරුණාකර බ්‍රවුසර අවසර (Permissions) පරීක්ෂා කරන්න.");
+                    } catch (err) {
+                        alert("මයික්‍රෆෝන අවසරය ලබා දී ඇත්දැයි බ්‍රවුසර සැකසුම් (Site Settings) වලින් පරීක්ෂා කරන්න.");
                         stopRecordingUI();
                     }
                 }
@@ -301,6 +305,10 @@
             micBtn.classList.remove('recording');
             micText.innerText = 'කතා කරන්න';
             document.getElementById('user-input').placeholder = "ප්‍රශ්නයක් මෙහි ලියන්න...";
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') { sendMessage(); }
         }
 
         async function sendMessage() {
@@ -331,7 +339,7 @@
                     body: JSON.stringify({
                         system_instruction: {
                             parts: [
-                                { text: "ඔබ ශ්‍රී ලංකා උසස් පෙළ (A/L) විෂය නිර්දේශයේ ඕනෑම විෂයයක් (භෞතික විද්‍යාව, සංයුක්ත ගණිතය, රසායන විද්‍යාව, ICT ඇතුළු ඕනෑම විෂයයක්) උගන්වන ඉතා දක්ෂ AI ටියුටර් කෙනෙකි. සිසුන්ට සිංහල භාෂාවෙන් (අවශ්‍ය තැන්වල ඉංග්‍රීසි තාක්ෂණික වචනද සහිතව) පැහැදිලි, නිවැරදි සහ විභාග මට්ටමේ පිළිතුරු ලබා දෙන්න." }
+                                { text: "ඔබ ශ්‍රී ලංකා උසස් පෙළ (A/L) විෂය නිර්දේශයේ භෞතික විද්‍යාව (Physics), සංයුක්ත ගණිතය (Combined Maths), රසායන විද්‍යාව (Chemistry), ජීව විද්‍යාව (Biology), ICT ඇතුළු ඕනෑම විෂයයක් උගන්වන ඉතා දක්ෂ AI ගුරුවරයෙකි. සිසුන්ට සිංහල භාෂාවෙන් (අවශ්‍ය තැන්වල ඉංග්‍රීසි තාක්ෂණික වචනද සහිතව) පැහැදිලි, නිවැරදි සහ විභාග මට්ටමේ පිළිතුරු ලබා දෙන්න." }
                             ]
                         },
                         contents: [
@@ -409,4 +417,3 @@
     </script>
 </body>
 </html>
-        
