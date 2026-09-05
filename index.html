@@ -225,9 +225,9 @@
         let isRecording = false;
         let selectedVoice = null;
         
+        // ඔයාට අවශ්‍ය 3.7 මෝඩල් එකම මෙහි යොදා ඇත
         const GEMINI_MODEL = "gemini-3.7-flash";
 
-        // ග්ලෝබල් ඔඩියෝ ස්ටේට් එක
         let activeAudio = {
             textChunks: [],
             currentIndex: 0,
@@ -350,6 +350,25 @@
             });
         }
 
+        // Rate Limit (Quota) මඟහරවා ගැනීමට Retry ලොජික් එකක් සමඟ API රික්වෙස්ට් යැවීම
+        async function fetchWithRetry(url, options, retries = 3, delay = 5000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.status === 429) { // Quota exceeded error code
+                        if (i < retries - 1) {
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            continue;
+                        }
+                    }
+                    return response;
+                } catch (error) {
+                    if (i === retries - 1) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
         async function processGeminiRequest(textPart, audioPart) {
             const apiKey = getApiKey();
             if (!apiKey) {
@@ -376,7 +395,7 @@
             }
 
             try {
-                const response = await fetch(url, {
+                const response = await fetchWithRetry(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -437,13 +456,11 @@
         function handlePlayPause(text, speakBtn) {
             if (!('speechSynthesis' in window)) return;
 
-            // වෙනත් මැසේජ් එකක බටන් එකක් නම් කලින් එක සම්පූර්ණයෙන්ම නවත්වන්න
             if (activeAudio.speakBtn && activeAudio.speakBtn !== speakBtn) {
                 stopCurrentSpeech();
                 activeAudio.currentIndex = 0;
             }
 
-            // දැනට ප්ලේ වෙමින් පවතී නම්, Pause කර index එක එම තැනම තබා ගනී
             if (activeAudio.isPlaying && activeAudio.speakBtn === speakBtn) {
                 window.speechSynthesis.cancel();
                 activeAudio.isPlaying = false;
@@ -451,10 +468,8 @@
                 return;
             }
 
-            // අලුතින් පටන් ගැනීම හෝ නවත්තපු තැනින් (currentIndex) ඉදිරියට යෑම
             if (activeAudio.textChunks.length === 0 || activeAudio.speakBtn !== speakBtn) {
                 const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
-                // වැකි මට්ටමින් හෝ වචන කට්‌ස් වලට කැඩීම
                 activeAudio.textChunks = cleanText.split(/(?<=[.?!;\n])\s+/).filter(s => s.trim().length > 0);
                 activeAudio.currentIndex = 0;
             }
@@ -492,7 +507,7 @@
 
             utterance.onend = function() {
                 if (activeAudio.isPlaying) {
-                    activeAudio.currentIndex++; // ඊළඟ වැකියට index එක මාරු කරයි
+                    activeAudio.currentIndex++;
                     playNextChunk();
                 }
             };
