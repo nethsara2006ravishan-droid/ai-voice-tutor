@@ -225,21 +225,18 @@
         let isRecording = false;
         let selectedVoice = null;
         
-        // ඔයා දාපු අලුත්ම High-performance model එක මෙතන සෙට් කරා!
-        const GEMINI_MODEL = "gemini-3.7-flash"; // හෝ gemini-3.7-flash
+        const GEMINI_MODEL = "gemini-3.7-flash";
 
         let currentAudioState = {
             sentences: [],
             currentIndex: 0,
             isPlaying: false,
-            activeSpeakBtn: null,
-            activeResetBtn: null,
-            currentUtterance: null
+            activeSpeakBtn: null
         };
 
         function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
-            selectedVoice = voices.find(v => v.lang.includes('si') || v.lang.includes('sinhala')) || voices[0];
+            selectedVoice = voices.find(v => v.lang.includes('si') || v.lang.includes('si-LK')) || voices.find(v => v.lang.includes('en')) || voices[0];
         }
 
         if ('speechSynthesis' in window) {
@@ -263,10 +260,10 @@
 
             const resetBtn = document.createElement('button');
             resetBtn.className = 'action-btn stop-btn';
-            resetBtn.innerHTML = '⏹️ මුලටම යන්න';
+            resetBtn.innerHTML = '⏹️ මුලටම';
 
             speakBtn.onclick = function() {
-                handlePlayPause(text, speakBtn, resetBtn);
+                handlePlayPause(text, speakBtn);
             };
 
             resetBtn.onclick = function() {
@@ -282,10 +279,10 @@
             if (!isRecording) {
                 try {
                     if (currentAudioState.isPlaying) {
-                        window.speechSynthesis.pause();
+                        window.speechSynthesis.cancel();
                         currentAudioState.isPlaying = false;
                         if (currentAudioState.activeSpeakBtn) {
-                            currentAudioState.activeSpeakBtn.innerHTML = '▶️ දිගටම අහන්න';
+                            currentAudioState.activeSpeakBtn.innerHTML = '🔊 අහන්න';
                         }
                     }
 
@@ -342,10 +339,10 @@
             if (!text) return;
             
             if (currentAudioState.isPlaying) {
-                window.speechSynthesis.pause();
+                window.speechSynthesis.cancel();
                 currentAudioState.isPlaying = false;
                 if (currentAudioState.activeSpeakBtn) {
-                    currentAudioState.activeSpeakBtn.innerHTML = '▶️ දිගටම අහන්න';
+                    currentAudioState.activeSpeakBtn.innerHTML = '🔊 අහන්න';
                 }
             }
             
@@ -438,38 +435,30 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function handlePlayPause(text, speakBtn, resetBtn) {
+        function handlePlayPause(text, speakBtn) {
             if (!('speechSynthesis' in window)) return;
 
-            if (currentAudioState.isPlaying && currentAudioState.activeSpeakBtn !== speakBtn) {
-                window.speechSynthesis.pause();
-                if (currentAudioState.activeSpeakBtn) {
-                    currentAudioState.activeSpeakBtn.innerHTML = '▶️ දිගටම අහන්න';
-                }
-            }
-
-            if (currentAudioState.isPlaying) {
-                window.speechSynthesis.pause();
+            // දැනට ප්ලේ වෙමින් පවතී නම්, එය නවතා (Pause) index එක එලෙසම තබා ගනී
+            if (currentAudioState.isPlaying && currentAudioState.activeSpeakBtn === speakBtn) {
+                window.speechSynthesis.cancel();
                 currentAudioState.isPlaying = false;
                 speakBtn.innerHTML = '▶️ දිගටම අහන්න';
-            } else {
-                if (currentAudioState.activeSpeakBtn !== speakBtn || currentAudioState.sentences.length === 0) {
-                    const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
-                    currentAudioState.sentences = cleanText.split(/(?<=[.?!;\n])\s+/).filter(s => s.trim().length > 0);
-                    currentAudioState.currentIndex = 0;
-                    currentAudioState.activeSpeakBtn = speakBtn;
-                    currentAudioState.activeResetBtn = resetBtn;
-                }
-
-                currentAudioState.isPlaying = true;
-                speakBtn.innerHTML = '⏸️ නවත්වන්න';
-
-                if (window.speechSynthesis.paused) {
-                    window.speechSynthesis.resume();
-                } else {
-                    playCurrentSentence();
-                }
+                return;
             }
+
+            // වෙනත් මැසේජ් එකක බටන් එකක් නම්, වෙනත් අලුත් එකකට මාරු වීම
+            if (currentAudioState.activeSpeakBtn !== speakBtn) {
+                window.speechSynthesis.cancel();
+                const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
+                currentAudioState.sentences = cleanText.split(/(?<=[.?!;\n])\s+/).filter(s => s.trim().length > 0);
+                currentAudioState.currentIndex = 0; // අලුත් එකක් නම් මුල සිට
+            }
+
+            currentAudioState.isPlaying = true;
+            currentAudioState.activeSpeakBtn = speakBtn;
+            speakBtn.innerHTML = '⏸️ නවත්වන්න';
+            
+            playCurrentSentence();
         }
 
         function playCurrentSentence() {
@@ -492,13 +481,12 @@
             }
             
             utterance.lang = 'si-LK';
-            utterance.rate = 0.9;
+            utterance.rate = 0.95;
 
-            currentAudioState.currentUtterance = utterance;
-
+            // වැקීයන් අවසන් වූ පසු ඊළඟ වැකියට යාම
             utterance.onend = function() {
                 if (currentAudioState.isPlaying) {
-                    currentAudioState.currentIndex++;
+                    currentAudioState.currentIndex++; // ඊළඟ වැකියට index එක වැඩි කරයි
                     playCurrentSentence();
                 }
             };
@@ -515,7 +503,6 @@
 
         function hardResetAudio(speakBtn) {
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.pause();
                 window.speechSynthesis.cancel();
             }
             currentAudioState.isPlaying = false;
@@ -523,6 +510,8 @@
             currentAudioState.sentences = [];
             if (speakBtn) {
                 speakBtn.innerHTML = '🔊 අහන්න';
+            } else if (currentAudioState.activeSpeakBtn) {
+                currentAudioState.activeSpeakBtn.innerHTML = '🔊 අහන්න';
             }
         }
     </script>
