@@ -62,8 +62,12 @@
             align-self: flex-end;
             border-bottom-right-radius: 2px;
         }
-        .speak-btn {
-            background: #0284c7;
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .action-btn {
             border: none;
             color: white;
             padding: 8px 14px;
@@ -71,17 +75,22 @@
             font-size: 13px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 12px;
             display: inline-flex;
             align-items: center;
             gap: 6px;
             transition: 0.2s;
         }
+        .speak-btn {
+            background: #0284c7;
+        }
         .speak-btn:hover {
             background: #0ea5e9;
         }
-        .speak-btn.playing {
+        .stop-btn {
             background: #ef4444;
+        }
+        .stop-btn:hover {
+            background: #dc2626;
         }
         .message.bot table {
             width: 100%;
@@ -214,8 +223,6 @@
         let audioChunks = [];
         let isRecording = false;
         let selectedVoice = null;
-        let currentUtterance = null;
-        let activeSpeakButton = null;
         const GEMINI_MODEL = "gemini-3.7-flash";
 
         function loadVoices() {
@@ -228,19 +235,31 @@
             loadVoices();
         }
 
-        // Add speak button to the initial welcome message on load
+        // Add speak and stop buttons to the initial welcome message on load
         window.addEventListener('DOMContentLoaded', () => {
             const welcomeDiv = document.getElementById('welcome-msg');
             const welcomeText = welcomeDiv.innerText;
             
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'button-group';
+
             const speakBtn = document.createElement('button');
-            speakBtn.className = 'speak-btn';
+            speakBtn.className = 'action-btn speak-btn';
             speakBtn.innerHTML = '🔊 අහන්න';
             speakBtn.onclick = function() {
-                toggleSpeech(welcomeText, speakBtn);
+                startSpeech(welcomeText);
             };
-            welcomeDiv.appendChild(document.createElement('br'));
-            welcomeDiv.appendChild(speakBtn);
+
+            const stopBtn = document.createElement('button');
+            stopBtn.className = 'action-btn stop-btn';
+            stopBtn.innerHTML = '⏹️ නවත්වන්න';
+            stopBtn.onclick = function() {
+                stopSpeech();
+            };
+
+            btnGroup.appendChild(speakBtn);
+            btnGroup.appendChild(stopBtn);
+            welcomeDiv.appendChild(btnGroup);
         });
 
         async function toggleAudioRecording() {
@@ -370,7 +389,7 @@
             }
         }
 
-        function appendMessage(text, sender, isPlainText = false, id = null, addSpeakButton = false) {
+        function appendMessage(text, sender, isPlainText = false, id = null, addButtons = false) {
             const chatContainer = document.getElementById('chat-container');
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${sender}`;
@@ -379,14 +398,27 @@
             if (sender === 'bot' && !isPlainText) {
                 msgDiv.innerHTML = marked.parse(text);
                 
-                if (addSpeakButton) {
+                if (addButtons) {
+                    const btnGroup = document.createElement('div');
+                    btnGroup.className = 'button-group';
+
                     const speakBtn = document.createElement('button');
-                    speakBtn.className = 'speak-btn';
+                    speakBtn.className = 'action-btn speak-btn';
                     speakBtn.innerHTML = '🔊 අහන්න';
                     speakBtn.onclick = function() {
-                        toggleSpeech(text, speakBtn);
+                        startSpeech(text);
                     };
-                    msgDiv.appendChild(speakBtn);
+
+                    const stopBtn = document.createElement('button');
+                    stopBtn.className = 'action-btn stop-btn';
+                    stopBtn.innerHTML = '⏹️ නවත්වන්න';
+                    stopBtn.onclick = function() {
+                        stopSpeech();
+                    };
+
+                    btnGroup.appendChild(speakBtn);
+                    btnGroup.appendChild(stopBtn);
+                    msgDiv.appendChild(btnGroup);
                 }
             } else {
                 msgDiv.innerText = text;
@@ -400,21 +432,12 @@
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
-            if (activeSpeakButton) {
-                activeSpeakButton.classList.remove('playing');
-                activeSpeakButton.innerHTML = '🔊 අහන්න';
-                activeSpeakButton = null;
-            }
         }
 
-        function toggleSpeech(text, btn) {
+        function startSpeech(text) {
             if (!('speechSynthesis' in window)) return;
 
-            if (activeSpeakButton === btn && window.speechSynthesis.speaking) {
-                stopSpeech();
-                return;
-            }
-
+            // Stop any ongoing speech first
             stopSpeech();
 
             const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
@@ -426,22 +449,6 @@
             
             utterance.lang = 'si-LK';
             utterance.rate = 0.9;
-
-            btn.classList.add('playing');
-            btn.innerHTML = '⏹️ නවත්වන්න';
-            activeSpeakButton = btn;
-
-            utterance.onend = function() {
-                btn.classList.remove('playing');
-                btn.innerHTML = '🔊 අහන්න';
-                if (activeSpeakButton === btn) activeSpeakButton = null;
-            };
-
-            utterance.onerror = function() {
-                btn.classList.remove('playing');
-                btn.innerHTML = '🔊 අහන්න';
-                if (activeSpeakButton === btn) activeSpeakButton = null;
-            };
 
             window.speechSynthesis.speak(utterance);
         }
