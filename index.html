@@ -45,7 +45,7 @@
         }
         .message {
             max-width: 90%;
-            padding: 12px 16px;
+            padding: 14px 16px;
             border-radius: 12px;
             font-size: 14px;
             line-height: 1.6;
@@ -63,25 +63,25 @@
             border-bottom-right-radius: 2px;
         }
         .speak-btn {
-            background: #334155;
+            background: #0284c7;
             border: none;
-            color: #38bdf8;
-            padding: 6px 12px;
+            color: white;
+            padding: 8px 14px;
             border-radius: 8px;
-            font-size: 12px;
+            font-size: 13px;
+            font-weight: bold;
             cursor: pointer;
-            margin-top: 8px;
+            margin-top: 12px;
             display: inline-flex;
             align-items: center;
             gap: 6px;
             transition: 0.2s;
         }
         .speak-btn:hover {
-            background: #475569;
+            background: #0ea5e9;
         }
         .speak-btn.playing {
             background: #ef4444;
-            color: white;
         }
         .message.bot table {
             width: 100%;
@@ -182,7 +182,9 @@
     </header>
 
     <div id="chat-container">
-        <div class="message bot">ආයුබෝවන්! මම ඔබගේ A/L අධ්‍යයන සහಾಯಕ AI ගුරුවරයා. භෞතික විද්‍යාව (Physics), සංයුක්ත ගණිතය (Combined Maths), රසායන විද්‍යාව (Chemistry), ජීව විද්‍යාව (Biology), ICT ඇතුළු ඕනෑම A/L විෂයයකට මගෙන් ප්‍රශ්න අසන්න පුළුවන්.</div>
+        <div class="message bot" id="welcome-msg">
+            ආයුබෝවන්! මම ඔබගේ A/L අධ්‍යයන සහಾಯಕ AI ගුරුවරයා. භෞතික විද්‍යාව (Physics), සංයුක්ත ගණිතය (Combined Maths), රසායන විද්‍යාව (Chemistry), ජීව විද්‍යාව (Biology), ICT ඇතුළු ඕනෑම A/L විෂයයකට මගෙන් ප්‍රශ්න අසන්න පුළුවන්.
+        </div>
     </div>
 
     <div id="input-container">
@@ -226,10 +228,24 @@
             loadVoices();
         }
 
+        // Add speak button to the initial welcome message on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const welcomeDiv = document.getElementById('welcome-msg');
+            const welcomeText = welcomeDiv.innerText;
+            
+            const speakBtn = document.createElement('button');
+            speakBtn.className = 'speak-btn';
+            speakBtn.innerHTML = '🔊 අහන්න';
+            speakBtn.onclick = function() {
+                toggleSpeech(welcomeText, speakBtn);
+            };
+            welcomeDiv.appendChild(document.createElement('br'));
+            welcomeDiv.appendChild(speakBtn);
+        });
+
         async function toggleAudioRecording() {
             if (!isRecording) {
                 try {
-                    // Stop any ongoing speech playback before recording
                     stopSpeech();
 
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -394,13 +410,11 @@
         function toggleSpeech(text, btn) {
             if (!('speechSynthesis' in window)) return;
 
-            // If already playing this button's text, stop it
             if (activeSpeakButton === btn && window.speechSynthesis.speaking) {
                 stopSpeech();
                 return;
             }
 
-            // Stop any other speech currently playing
             stopSpeech();
 
             const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
