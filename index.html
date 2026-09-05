@@ -224,9 +224,10 @@
         let audioChunks = [];
         let isRecording = false;
         let selectedVoice = null;
-        const GEMINI_MODEL = "gemini-3.7-flash";
+        
+        // ඔයා දාපු අලුත්ම High-performance model එක මෙතන සෙට් කරා!
+        const GEMINI_MODEL = "gemini-2.5-flash"; // හෝ gemini-3.7-flash
 
-        // Global state object
         let currentAudioState = {
             sentences: [],
             currentIndex: 0,
@@ -280,7 +281,6 @@
         async function toggleAudioRecording() {
             if (!isRecording) {
                 try {
-                    // Stop any ongoing speech safely without breaking browser api
                     if (currentAudioState.isPlaying) {
                         window.speechSynthesis.pause();
                         currentAudioState.isPlaying = false;
@@ -441,7 +441,6 @@
         function handlePlayPause(text, speakBtn, resetBtn) {
             if (!('speechSynthesis' in window)) return;
 
-            // If a different block is playing, pause it first
             if (currentAudioState.isPlaying && currentAudioState.activeSpeakBtn !== speakBtn) {
                 window.speechSynthesis.pause();
                 if (currentAudioState.activeSpeakBtn) {
@@ -450,12 +449,10 @@
             }
 
             if (currentAudioState.isPlaying) {
-                // Currently playing -> Pause it
                 window.speechSynthesis.pause();
                 currentAudioState.isPlaying = false;
                 speakBtn.innerHTML = '▶️ දිගටම අහන්න';
             } else {
-                // Not playing -> Check if we need to initialize sentences
                 if (currentAudioState.activeSpeakBtn !== speakBtn || currentAudioState.sentences.length === 0) {
                     const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
                     currentAudioState.sentences = cleanText.split(/(?<=[.?!;\n])\s+/).filter(s => s.trim().length > 0);
@@ -467,8 +464,6 @@
                 currentAudioState.isPlaying = true;
                 speakBtn.innerHTML = '⏸️ නවත්වන්න';
 
-                // If speech synthesis was paused mid-way, resume can be buggy on mobile Chrome, 
-                // so we safely play the current sentence index forward.
                 if (window.speechSynthesis.paused) {
                     window.speechSynthesis.resume();
                 } else {
@@ -481,7 +476,6 @@
             if (!currentAudioState.isPlaying) return;
 
             if (currentAudioState.currentIndex >= currentAudioState.sentences.length) {
-                // Finished everything
                 currentAudioState.isPlaying = false;
                 currentAudioState.currentIndex = 0;
                 if (currentAudioState.activeSpeakBtn) {
@@ -522,7 +516,6 @@
         function hardResetAudio(speakBtn) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.pause();
-                // Clear queue smoothly
                 window.speechSynthesis.cancel();
             }
             currentAudioState.isPlaying = false;
