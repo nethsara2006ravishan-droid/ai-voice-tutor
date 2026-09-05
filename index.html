@@ -226,14 +226,14 @@
         let selectedVoice = null;
         const GEMINI_MODEL = "gemini-3.7-flash";
 
-        // Global state to track active speech
-        let currentSpeechState = {
+        // Global state object
+        let currentAudioState = {
             sentences: [],
             currentIndex: 0,
             isPlaying: false,
-            isPaused: false,
-            speakBtn: null,
-            utterance: null
+            activeSpeakBtn: null,
+            activeResetBtn: null,
+            currentUtterance: null
         };
 
         function loadVoices() {
@@ -246,11 +246,13 @@
             loadVoices();
         }
 
-        // Add speak and stop buttons to the initial welcome message on load
         window.addEventListener('DOMContentLoaded', () => {
             const welcomeDiv = document.getElementById('welcome-msg');
             const welcomeText = welcomeDiv.innerText;
-            
+            setupButtonsForMessage(welcomeDiv, welcomeText);
+        });
+
+        function setupButtonsForMessage(containerDiv, text) {
             const btnGroup = document.createElement('div');
             btnGroup.className = 'button-group';
 
@@ -258,28 +260,33 @@
             speakBtn.className = 'action-btn speak-btn';
             speakBtn.innerHTML = '🔊 අහන්න';
 
-            const stopBtn = document.createElement('button');
-            stopBtn.className = 'action-btn stop-btn';
-            stopBtn.innerHTML = '⏹️ මුලටම යන්න';
+            const resetBtn = document.createElement('button');
+            resetBtn.className = 'action-btn stop-btn';
+            resetBtn.innerHTML = '⏹️ මුලටම යන්න';
 
             speakBtn.onclick = function() {
-                handlePlayPause(welcomeText, speakBtn);
+                handlePlayPause(text, speakBtn, resetBtn);
             };
 
-            stopBtn.onclick = function() {
-                stopSpeech(speakBtn);
+            resetBtn.onclick = function() {
+                hardResetAudio(speakBtn);
             };
 
             btnGroup.appendChild(speakBtn);
-            btnGroup.appendChild(stopBtn);
-            welcomeDiv.appendChild(btnGroup);
-        });
+            btnGroup.appendChild(resetBtn);
+            containerDiv.appendChild(btnGroup);
+        }
 
         async function toggleAudioRecording() {
             if (!isRecording) {
                 try {
-                    if (currentSpeechState.speakBtn) {
-                        stopSpeech(currentSpeechState.speakBtn);
+                    // Stop any ongoing speech safely without breaking browser api
+                    if (currentAudioState.isPlaying) {
+                        window.speechSynthesis.pause();
+                        currentAudioState.isPlaying = false;
+                        if (currentAudioState.activeSpeakBtn) {
+                            currentAudioState.activeSpeakBtn.innerHTML = '▶️ දිගටම අහන්න';
+                        }
                     }
 
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -304,7 +311,7 @@
                     micText.innerText = 'ශ්‍රවණය කරමින් පවතී... නැවැත්වීමට නැවත ඔබන්න';
                 } catch (err) {
                     console.error("Mic access error:", err);
-                    alert("මයික්‍රෆෝන අවසරය ලබා දී ඇත්දැයි බ්‍රවුසර සැකසුම් (Permissions) වලින් පරීක්ෂා කරන්න.");
+                    alert("මයික්‍රෆෝන අවසරය ලබා දී ඇත්දැයි බ්‍රවුසර සැකසුම් වලින් පරීක්ෂා කරන්න.");
                 }
             } else {
                 mediaRecorder.stop();
@@ -333,9 +340,15 @@
             const inputField = document.getElementById('user-input');
             const text = inputField.value.trim();
             if (!text) return;
-            if (currentSpeechState.speakBtn) {
-                stopSpeech(currentSpeechState.speakBtn);
+            
+            if (currentAudioState.isPlaying) {
+                window.speechSynthesis.pause();
+                currentAudioState.isPlaying = false;
+                if (currentAudioState.activeSpeakBtn) {
+                    currentAudioState.activeSpeakBtn.innerHTML = '▶️ දිගටම අහන්න';
+                }
             }
+            
             inputField.value = '';
             await processGeminiRequest(text, null);
         }
@@ -373,7 +386,7 @@
             }
             if (audioPart) {
                 partsArray.push(audioPart);
-                partsArray.push({ text: "කරුණාකර මෙම ශ්‍රව්‍ය පණිවිඩයට (Voice note) සිංහලෙන් සවන් දී අදාළ A/L විෂය ප්‍රශ්නයට නිවැරදි පිළිතුර ලබා දෙන්න." });
+                partsArray.push({ text: "කරුණාකර මෙම ශ්‍රව්‍ය පණිවිඩයට සිංහලෙන් සවන් දී අදාළ ප්‍රශ්නයට නිවැරදි පිළිතුර ලබා දෙන්න." });
             }
 
             try {
@@ -414,30 +427,8 @@
 
             if (sender === 'bot' && !isPlainText) {
                 msgDiv.innerHTML = marked.parse(text);
-                
                 if (addButtons) {
-                    const btnGroup = document.createElement('div');
-                    btnGroup.className = 'button-group';
-
-                    const speakBtn = document.createElement('button');
-                    speakBtn.className = 'action-btn speak-btn';
-                    speakBtn.innerHTML = '🔊 අහන්න';
-
-                    const stopBtn = document.createElement('button');
-                    stopBtn.className = 'action-btn stop-btn';
-                    stopBtn.innerHTML = '⏹️ මුලටම යන්න';
-
-                    speakBtn.onclick = function() {
-                        handlePlayPause(text, speakBtn);
-                    };
-
-                    stopBtn.onclick = function() {
-                        stopSpeech(speakBtn);
-                    };
-
-                    btnGroup.appendChild(speakBtn);
-                    btnGroup.appendChild(stopBtn);
-                    msgDiv.appendChild(btnGroup);
+                    setupButtonsForMessage(msgDiv, text);
                 }
             } else {
                 msgDiv.innerText = text;
@@ -447,49 +438,59 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function handlePlayPause(text, btn) {
+        function handlePlayPause(text, speakBtn, resetBtn) {
             if (!('speechSynthesis' in window)) return;
 
-            // If a different message is being played, stop it first
-            if (currentSpeechState.speakBtn && currentSpeechState.speakBtn !== btn) {
-                stopSpeech(currentSpeechState.speakBtn);
+            // If a different block is playing, pause it first
+            if (currentAudioState.isPlaying && currentAudioState.activeSpeakBtn !== speakBtn) {
+                window.speechSynthesis.pause();
+                if (currentAudioState.activeSpeakBtn) {
+                    currentAudioState.activeSpeakBtn.innerHTML = '▶️ දිගටම අහන්න';
+                }
             }
 
-            if (currentSpeechState.isPlaying) {
-                // Pause current playback
-                window.speechSynthesis.cancel();
-                currentSpeechState.isPlaying = false;
-                currentSpeechState.isPaused = true;
-                btn.innerHTML = '▶️ දිගටම අහන්න';
+            if (currentAudioState.isPlaying) {
+                // Currently playing -> Pause it
+                window.speechSynthesis.pause();
+                currentAudioState.isPlaying = false;
+                speakBtn.innerHTML = '▶️ දිගටම අහන්න';
             } else {
-                // Resume or start fresh
-                if (!currentSpeechState.isPaused || currentSpeechState.sentences.length === 0) {
-                    // Start from beginning
+                // Not playing -> Check if we need to initialize sentences
+                if (currentAudioState.activeSpeakBtn !== speakBtn || currentAudioState.sentences.length === 0) {
                     const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
-                    // Split text into sentences by period, question mark, exclamation, or newline
-                    currentSpeechState.sentences = cleanText.split(/(?<=[.?!;\n])\s+/).filter(s => s.trim().length > 0);
-                    currentSpeechState.currentIndex = 0;
+                    currentAudioState.sentences = cleanText.split(/(?<=[.?!;\n])\s+/).filter(s => s.trim().length > 0);
+                    currentAudioState.currentIndex = 0;
+                    currentAudioState.activeSpeakBtn = speakBtn;
+                    currentAudioState.activeResetBtn = resetBtn;
                 }
 
-                currentSpeechState.speakBtn = btn;
-                currentSpeechState.isPaused = false;
-                playNextSentence();
+                currentAudioState.isPlaying = true;
+                speakBtn.innerHTML = '⏸️ නවත්වන්න';
+
+                // If speech synthesis was paused mid-way, resume can be buggy on mobile Chrome, 
+                // so we safely play the current sentence index forward.
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                } else {
+                    playCurrentSentence();
+                }
             }
         }
 
-        function playNextSentence() {
-            if (!currentSpeechState.speakBtn) return;
+        function playCurrentSentence() {
+            if (!currentAudioState.isPlaying) return;
 
-            if (currentSpeechState.currentIndex >= currentSpeechState.sentences.length) {
-                // Finished all sentences
-                currentSpeechState.isPlaying = false;
-                currentSpeechState.isPaused = false;
-                currentSpeechState.speakBtn.innerHTML = '🔊 අහන්න';
-                currentSpeechState.currentIndex = 0;
+            if (currentAudioState.currentIndex >= currentAudioState.sentences.length) {
+                // Finished everything
+                currentAudioState.isPlaying = false;
+                currentAudioState.currentIndex = 0;
+                if (currentAudioState.activeSpeakBtn) {
+                    currentAudioState.activeSpeakBtn.innerHTML = '🔊 අහන්න';
+                }
                 return;
             }
 
-            const sentence = currentSpeechState.sentences[currentSpeechState.currentIndex];
+            const sentence = currentAudioState.sentences[currentAudioState.currentIndex];
             const utterance = new SpeechSynthesisUtterance(sentence);
             
             if (selectedVoice) {
@@ -499,33 +500,36 @@
             utterance.lang = 'si-LK';
             utterance.rate = 0.9;
 
-            currentSpeechState.isPlaying = true;
-            currentSpeechState.speakBtn.innerHTML = '⏸️ නවත්වන්න';
+            currentAudioState.currentUtterance = utterance;
 
             utterance.onend = function() {
-                if (currentSpeechState.isPlaying) {
-                    currentSpeechState.currentIndex++;
-                    playNextSentence();
+                if (currentAudioState.isPlaying) {
+                    currentAudioState.currentIndex++;
+                    playCurrentSentence();
                 }
             };
 
             utterance.onerror = function() {
-                currentSpeechState.isPlaying = false;
-                currentSpeechState.speakBtn.innerHTML = '🔊 අහන්න';
+                currentAudioState.isPlaying = false;
+                if (currentAudioState.activeSpeakBtn) {
+                    currentAudioState.activeSpeakBtn.innerHTML = '🔊 අහන්න';
+                }
             };
 
             window.speechSynthesis.speak(utterance);
         }
 
-        function stopSpeech(btn) {
+        function hardResetAudio(speakBtn) {
             if ('speechSynthesis' in window) {
+                window.speechSynthesis.pause();
+                // Clear queue smoothly
                 window.speechSynthesis.cancel();
             }
-            currentSpeechState.isPlaying = false;
-            currentSpeechState.isPaused = false;
-            currentSpeechState.currentIndex = 0;
-            if (btn) {
-                btn.innerHTML = '🔊 අහන්න';
+            currentAudioState.isPlaying = false;
+            currentAudioState.currentIndex = 0;
+            currentAudioState.sentences = [];
+            if (speakBtn) {
+                speakBtn.innerHTML = '🔊 අහන්න';
             }
         }
     </script>
