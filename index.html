@@ -227,11 +227,13 @@
         
         const GEMINI_MODEL = "gemini-3.7-flash";
 
-        let currentAudioState = {
-            sentences: [],
+        // ග්ලෝබල් ඔඩියෝ ස්ටේට් එක
+        let activeAudio = {
+            textChunks: [],
             currentIndex: 0,
             isPlaying: false,
-            activeSpeakBtn: null
+            speakBtn: null,
+            utterance: null
         };
 
         function loadVoices() {
@@ -278,13 +280,7 @@
         async function toggleAudioRecording() {
             if (!isRecording) {
                 try {
-                    if (currentAudioState.isPlaying) {
-                        window.speechSynthesis.cancel();
-                        currentAudioState.isPlaying = false;
-                        if (currentAudioState.activeSpeakBtn) {
-                            currentAudioState.activeSpeakBtn.innerHTML = '🔊 අහන්න';
-                        }
-                    }
+                    stopCurrentSpeech();
 
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
@@ -338,14 +334,7 @@
             const text = inputField.value.trim();
             if (!text) return;
             
-            if (currentAudioState.isPlaying) {
-                window.speechSynthesis.cancel();
-                currentAudioState.isPlaying = false;
-                if (currentAudioState.activeSpeakBtn) {
-                    currentAudioState.activeSpeakBtn.innerHTML = '🔊 අහන්න';
-                }
-            }
-            
+            stopCurrentSpeech();
             inputField.value = '';
             await processGeminiRequest(text, null);
         }
@@ -435,46 +424,62 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
+        function stopCurrentSpeech() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            if (activeAudio.speakBtn) {
+                activeAudio.speakBtn.innerHTML = '🔊 අහන්න';
+            }
+            activeAudio.isPlaying = false;
+        }
+
         function handlePlayPause(text, speakBtn) {
             if (!('speechSynthesis' in window)) return;
 
-            // දැනට ප්ලේ වෙමින් පවතී නම්, එය නවතා (Pause) index එක එලෙසම තබා ගනී
-            if (currentAudioState.isPlaying && currentAudioState.activeSpeakBtn === speakBtn) {
+            // වෙනත් මැසේජ් එකක බටන් එකක් නම් කලින් එක සම්පූර්ණයෙන්ම නවත්වන්න
+            if (activeAudio.speakBtn && activeAudio.speakBtn !== speakBtn) {
+                stopCurrentSpeech();
+                activeAudio.currentIndex = 0;
+            }
+
+            // දැනට ප්ලේ වෙමින් පවතී නම්, Pause කර index එක එම තැනම තබා ගනී
+            if (activeAudio.isPlaying && activeAudio.speakBtn === speakBtn) {
                 window.speechSynthesis.cancel();
-                currentAudioState.isPlaying = false;
+                activeAudio.isPlaying = false;
                 speakBtn.innerHTML = '▶️ දිගටම අහන්න';
                 return;
             }
 
-            // වෙනත් මැසේජ් එකක බටන් එකක් නම්, වෙනත් අලුත් එකකට මාරු වීම
-            if (currentAudioState.activeSpeakBtn !== speakBtn) {
-                window.speechSynthesis.cancel();
+            // අලුතින් පටන් ගැනීම හෝ නවත්තපු තැනින් (currentIndex) ඉදිරියට යෑම
+            if (activeAudio.textChunks.length === 0 || activeAudio.speakBtn !== speakBtn) {
                 const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
-                currentAudioState.sentences = cleanText.split(/(?<=[.?!;\n])\s+/).filter(s => s.trim().length > 0);
-                currentAudioState.currentIndex = 0; // අලුත් එකක් නම් මුල සිට
+                // වැකි මට්ටමින් හෝ වචන කට්‌ස් වලට කැඩීම
+                activeAudio.textChunks = cleanText.split(/(?<=[.?!;\n])\s+/).filter(s => s.trim().length > 0);
+                activeAudio.currentIndex = 0;
             }
 
-            currentAudioState.isPlaying = true;
-            currentAudioState.activeSpeakBtn = speakBtn;
+            activeAudio.isPlaying = true;
+            activeAudio.speakBtn = speakBtn;
             speakBtn.innerHTML = '⏸️ නවත්වන්න';
-            
-            playCurrentSentence();
+
+            playNextChunk();
         }
 
-        function playCurrentSentence() {
-            if (!currentAudioState.isPlaying) return;
+        function playNextChunk() {
+            if (!activeAudio.isPlaying) return;
 
-            if (currentAudioState.currentIndex >= currentAudioState.sentences.length) {
-                currentAudioState.isPlaying = false;
-                currentAudioState.currentIndex = 0;
-                if (currentAudioState.activeSpeakBtn) {
-                    currentAudioState.activeSpeakBtn.innerHTML = '🔊 අහන්න';
+            if (activeAudio.currentIndex >= activeAudio.textChunks.length) {
+                activeAudio.isPlaying = false;
+                activeAudio.currentIndex = 0;
+                if (activeAudio.speakBtn) {
+                    activeAudio.speakBtn.innerHTML = '🔊 අහන්න';
                 }
                 return;
             }
 
-            const sentence = currentAudioState.sentences[currentAudioState.currentIndex];
-            const utterance = new SpeechSynthesisUtterance(sentence);
+            const currentText = activeAudio.textChunks[activeAudio.currentIndex];
+            const utterance = new SpeechSynthesisUtterance(currentText);
             
             if (selectedVoice) {
                 utterance.voice = selectedVoice;
@@ -483,18 +488,19 @@
             utterance.lang = 'si-LK';
             utterance.rate = 0.95;
 
-            // වැקීයන් අවසන් වූ පසු ඊළඟ වැකියට යාම
+            activeAudio.utterance = utterance;
+
             utterance.onend = function() {
-                if (currentAudioState.isPlaying) {
-                    currentAudioState.currentIndex++; // ඊළඟ වැකියට index එක වැඩි කරයි
-                    playCurrentSentence();
+                if (activeAudio.isPlaying) {
+                    activeAudio.currentIndex++; // ඊළඟ වැකියට index එක මාරු කරයි
+                    playNextChunk();
                 }
             };
 
             utterance.onerror = function() {
-                currentAudioState.isPlaying = false;
-                if (currentAudioState.activeSpeakBtn) {
-                    currentAudioState.activeSpeakBtn.innerHTML = '🔊 අහන්න';
+                activeAudio.isPlaying = false;
+                if (activeAudio.speakBtn) {
+                    activeAudio.speakBtn.innerHTML = '🔊 අහන්න';
                 }
             };
 
@@ -502,16 +508,11 @@
         }
 
         function hardResetAudio(speakBtn) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
-            currentAudioState.isPlaying = false;
-            currentAudioState.currentIndex = 0;
-            currentAudioState.sentences = [];
+            stopCurrentSpeech();
+            activeAudio.currentIndex = 0;
+            activeAudio.textChunks = [];
             if (speakBtn) {
                 speakBtn.innerHTML = '🔊 අහන්න';
-            } else if (currentAudioState.activeSpeakBtn) {
-                currentAudioState.activeSpeakBtn.innerHTML = '🔊 අහන්න';
             }
         }
     </script>
