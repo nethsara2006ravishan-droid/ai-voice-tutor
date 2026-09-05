@@ -181,13 +181,13 @@
     </div>
 
     <div id="input-container">
-        <button id="mic-btn" type="button" onclick="handleMicClick()">
+        <button id="mic-btn" type="button" onclick="toggleAudioRecording()">
             <span style="font-size: 22px;">🎙️</span> 
             <span id="mic-text">කතා කරන්න</span>
         </button>
         <div class="input-row">
             <input type="text" id="user-input" placeholder="ප්‍රශ්නයක් මෙහි ලියන්න..." onkeypress="handleKeyPress(event)">
-            <button onclick="sendMessage()">යවන්න</button>
+            <button onclick="sendTextMessage()">යවන්න</button>
         </div>
     </div>
 
@@ -203,8 +203,9 @@
             return key ? key.trim() : "";
         }
 
+        let mediaRecorder;
+        let audioChunks = [];
         let isRecording = false;
-        let recognition = null;
         let selectedVoice = null;
         const GEMINI_MODEL = "gemini-3.7-flash";
 
@@ -218,107 +219,76 @@
             loadVoices();
         }
 
-        function initRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                return null;
-            }
-            try {
-                const rec = new SpeechRecognition();
-                rec.lang = 'si-LK';
-                rec.continuous = false;
-                rec.interimResults = true;
-
-                rec.onresult = function(event) {
-                    let transcript = '';
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        transcript += event.results[i][0].transcript;
-                    }
-                    document.getElementById('user-input').value = transcript;
-                };
-
-                rec.onerror = function(event) {
-                    console.error("Speech Rec Error:", event.error);
-                    stopRecordingUI();
-                };
-                
-                rec.onend = function() {
-                    stopRecordingUI();
-                    const val = document.getElementById('user-input').value.trim();
-                    if (val) {
-                        sendMessage();
-                    }
-                };
-                return rec;
-            } catch (e) {
-                console.error("Init speech rec failed:", e);
-                return null;
-            }
-        }
-
-        recognition = initRecognition();
-
-        function handleMicClick() {
-            if (!recognition) {
-                alert("ඔබගේ බ්‍රවුසරය (Browser) හඬ හඳුනාගැනීමට (Speech Recognition) සෘජුව සහය නොදක්වයි. කරුණාකර ටයිප් කර යවන්න.");
-                return;
-            }
-
-            if (isRecording) {
+        async function toggleAudioRecording() {
+            if (!isRecording) {
                 try {
-                    recognition.stop();
-                } catch(e) {}
-                stopRecordingUI();
-            } else {
-                try {
-                    window.speechSynthesis.cancel();
-                    document.getElementById('user-input').value = '';
-                    recognition.start();
-                    startRecordingUI();
-                } catch (e) {
-                    console.error("Start failed:", e);
-                    recognition = initRecognition();
-                    try {
-                        recognition.start();
-                        startRecordingUI();
-                    } catch (err) {
-                        alert("මයික්‍රෆෝන අවසරය ලබා දී ඇත්දැයි බ්‍රවුසර සැකසුම් (Site Settings) වලින් පරීක්ෂා කරන්න.");
-                        stopRecordingUI();
-                    }
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        await sendAudioToGemini(audioBlob);
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    
+                    const micBtn = document.getElementById('mic-btn');
+                    const micText = document.getElementById('mic-text');
+                    micBtn.classList.add('recording');
+                    micText.innerText = 'ශ්‍රවණය කරමින් පවතී... නැවැත්වීමට නැවත ඔබන්න';
+                } catch (err) {
+                    console.error("Mic access error:", err);
+                    alert("මයික්‍රෆෝන අවසරය ලබා දී ඇත්දැයි බ්‍රවුසර සැකසුම් (Permissions) වලින් පරීක්ෂා කරන්න.");
                 }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                const micBtn = document.getElementById('mic-btn');
+                const micText = document.getElementById('mic-text');
+                micBtn.classList.remove('recording');
+                micText.innerText = 'කතා කරන්න';
             }
-        }
-
-        function startRecordingUI() {
-            isRecording = true;
-            const micBtn = document.getElementById('mic-btn');
-            const micText = document.getElementById('mic-text');
-            micBtn.classList.add('recording');
-            micText.innerText = 'ශ්‍රවණය කරමින් පවතී... කතා කරන්න...';
-            document.getElementById('user-input').placeholder = "කතා කරන්න...";
-        }
-
-        function stopRecordingUI() {
-            isRecording = false;
-            const micBtn = document.getElementById('mic-btn');
-            const micText = document.getElementById('mic-text');
-            micBtn.classList.remove('recording');
-            micText.innerText = 'කතා කරන්න';
-            document.getElementById('user-input').placeholder = "ප්‍රශ්නයක් මෙහි ලියන්න...";
         }
 
         function handleKeyPress(event) {
-            if (event.key === 'Enter') { sendMessage(); }
+            if (event.key === 'Enter') { sendTextMessage(); }
         }
 
-        async function sendMessage() {
+        function blobToBase64(blob) {
+            return new Promise((resolve, _) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        async function sendTextMessage() {
             const inputField = document.getElementById('user-input');
             const text = inputField.value.trim();
             if (!text) return;
-
-            appendMessage(text, 'user', true);
             inputField.value = '';
+            await processGeminiRequest(text, null);
+        }
 
+        async function sendAudioToGemini(audioBlob) {
+            appendMessage("🎙️ [ශ්‍රව්‍ය පණිවිඩයක් යවන ලදී...]", 'user', true);
+            const base64Audio = await blobToBase64(audioBlob);
+            await processGeminiRequest(null, {
+                inlineData: {
+                    mimeType: "audio/webm",
+                    data: base64Audio
+                }
+            });
+        }
+
+        async function processGeminiRequest(textPart, audioPart) {
             const apiKey = getApiKey();
             if (!apiKey) {
                 alert("API Key එකක් ලබා දී නැත!");
@@ -330,25 +300,25 @@
             const loadingId = 'loading-' + Date.now();
             appendMessage('සිතමින් පවතී...', 'bot', false, loadingId);
 
+            let partsArray = [
+                { text: "ඔබ ශ්‍රී ලංකා උසස් පෙළ (A/L) විෂය නිර්දේශයේ භෞතික විද්‍යාව (Physics), සංයුක්ත ගණිතය (Combined Maths), රසායන විද්‍යාව (Chemistry), ජීව විද්‍යාව (Biology), ICT ඇතුළු ඕනෑම විෂයයක් උගන්වන ඉතා දක්ෂ AI ගුරුවරයෙකි. සිසුන්ට සිංහල භාෂාවෙන් (අවශ්‍ය තැන්වල ඉංග්‍රීසි තාක්ෂණික වචනද සහිතව) පැහැදිලි, නිවැරදි සහ විභාග මට්ටමේ පිළිතුරු ලබා දෙන්න." }
+            ];
+
+            if (textPart) {
+                appendMessage(textPart, 'user', true);
+                partsArray.push({ text: textPart });
+            }
+            if (audioPart) {
+                partsArray.push(audioPart);
+                partsArray.push({ text: "කරුණාකර මෙම ශ්‍රව්‍ය පණිවිඩයට (Voice note) සිංහලෙන් සවන් දී අදාළ A/L විෂය ප්‍රශ්නයට නිවැරදි පිළිතුර ලබා දෙන්න." });
+            }
+
             try {
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        system_instruction: {
-                            parts: [
-                                { text: "ඔබ ශ්‍රී ලංකා උසස් පෙළ (A/L) විෂය නිර්දේශයේ භෞතික විද්‍යාව (Physics), සංයුක්ත ගණිතය (Combined Maths), රසායන විද්‍යාව (Chemistry), ජීව විද්‍යාව (Biology), ICT ඇතුළු ඕනෑම විෂයයක් උගන්වන ඉතා දක්ෂ AI ගුරුවරයෙකි. සිසුන්ට සිංහල භාෂාවෙන් (අවශ්‍ය තැන්වල ඉංග්‍රීසි තාක්ෂණික වචනද සහිතව) පැහැදිලි, නිවැරදි සහ විභාග මට්ටමේ පිළිතුරු ලබා දෙන්න." }
-                            ]
-                        },
-                        contents: [
-                            {
-                                parts: [
-                                    { text: text }
-                                ]
-                            }
-                        ]
+                        contents: [{ parts: partsArray }]
                     })
                 });
 
