@@ -41,7 +41,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            padding-bottom: 80px;
+            padding-bottom: 110px;
         }
         .message {
             max-width: 90%;
@@ -105,10 +105,16 @@
             padding: 12px;
             background: #1e293b;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 8px;
             border-top: 1px solid #334155;
             z-index: 10;
+        }
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
         }
         #user-input {
             flex: 1;
@@ -133,30 +139,31 @@
             cursor: pointer;
             font-size: 14px;
         }
-        /* Modern Round Mic Button Style */
-        .icon-mic-btn {
+        /* Fixed Mic Button style as requested */
+        #mic-btn {
+            width: 100%;
             background: #3b82f6;
             border: none;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
+            color: white;
+            padding: 14px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 10px;
             cursor: pointer;
-            flex-shrink: 0;
-            font-size: 18px;
-            color: white;
             transition: 0.2s;
         }
-        .icon-mic-btn.recording {
+        #mic-btn.recording {
             background: #ef4444;
             animation: pulse 1.5s infinite;
         }
         @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -166,18 +173,23 @@
     <header>
         <div class="header-title">
             <span>🎓</span>
-            <span>A/L AI Tutor (All Subjects)</span>
+            <span>A/L All-Subjects AI Tutor</span>
         </div>
     </header>
 
     <div id="chat-container">
-        <div class="message bot">ආයුබෝවන්! මම ශ්‍රී ලංකා උසස් පෙළ (A/L) ඕනෑම විෂයයක් සඳහා උගන්වන AI ටියුටර්. ඔබට අවශ්‍ය ප්‍රශ්නයක් ටයිප් කර හෝ පහත රවුම් මයික් බටන් එක ඔබා කතා කර අසන්න.</div>
+        <div class="message bot">ආයුබෝවන්! මම ශ්‍රී ලංකා උසස් පෙළ (A/L) ඕනෑම විෂයයක් සඳහා උගන්වන AI ටියුටර්. ඔබට අවශ්‍ය ප්‍රශ්නයක් ටයිප් කර හෝ පහත මයික් බටන් එක ඔබා කතා කර අසන්න.</div>
     </div>
 
     <div id="input-container">
-        <button id="mic-btn" class="icon-mic-btn" onclick="toggleSpeechRecognition()" title="කතා කරන්න">🎙️</button>
-        <input type="text" id="user-input" placeholder="ප්‍රශ්නයක් මෙහි ලියන්න හෝ මයික් එක ඔබන්න..." onkeypress="handleKeyPress(event)">
-        <button onclick="sendMessage()">යවන්න</button>
+        <button id="mic-btn" onclick="toggleSpeechRecognition()">
+            <span style="font-size: 22px;">🎙️</span> 
+            <span id="mic-text">කතා කරන්න</span>
+        </button>
+        <div class="input-row">
+            <input type="text" id="user-input" placeholder="ප්‍රශ්නයක් මෙහි ලියන්න..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">යවන්න</button>
+        </div>
     </div>
 
     <script>
@@ -207,29 +219,36 @@
             loadVoices();
         }
 
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        // Improved speech recognition initialization with fallback handling
+        function initSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.lang = 'si-LK';
-            recognition.continuous = false;
-            recognition.interimResults = false;
+            if (!SpeechRecognition) {
+                return null;
+            }
+            const rec = new SpeechRecognition();
+            rec.lang = 'si-LK';
+            rec.continuous = false;
+            rec.interimResults = false;
 
-            recognition.onresult = function(event) {
+            rec.onresult = function(event) {
                 const transcript = event.results[0][0].transcript;
                 document.getElementById('user-input').value = transcript;
                 stopRecordingUI();
                 sendMessage();
             };
 
-            recognition.onerror = function(event) {
+            rec.onerror = function(event) {
                 console.error("Speech Recognition Error:", event.error);
                 stopRecordingUI();
             };
             
-            recognition.onend = function() {
+            rec.onend = function() {
                 stopRecordingUI();
             };
+            return rec;
         }
+
+        recognition = initSpeechRecognition();
 
         function handleKeyPress(event) {
             if (event.key === 'Enter') { sendMessage(); }
@@ -237,11 +256,14 @@
 
         function toggleSpeechRecognition() {
             if (!recognition) {
-                alert('ඔබගේ බ්‍රවුසරය කටහඬ හඳුනාගැනීම සඳහා සහය නොදක්වයි.');
+                // Fallback if browser speech recognition fails or isn't supported
+                alert('ඔබගේ බ්‍රවුසරය හඬ හඳුනාගැනීමට (Speech Recognition) සෘජුව සහය නොදක්වයි. කරුණාකර කීබෝඩ් එකෙන් ටයිප් කරන්න.');
                 return;
             }
             if (isRecording) {
-                recognition.stop();
+                try {
+                    recognition.stop();
+                } catch(e) {}
                 stopRecordingUI();
             } else {
                 try {
@@ -249,9 +271,16 @@
                     recognition.start();
                     startRecordingUI();
                 } catch (e) {
-                    console.error(e);
-                    recognition.stop();
-                    stopRecordingUI();
+                    console.error("Mic start error:", e);
+                    // Re-initialize if state gets stuck
+                    recognition = initSpeechRecognition();
+                    try {
+                        recognition.start();
+                        startRecordingUI();
+                    } catch(err) {
+                        alert("මයික්‍රෆෝනය ක්‍රියාත්මක කිරීමේදී දෝෂයක් මතු විය. කරුණාකර බ්‍රවුසර අවසර (Permissions) පරීක්ෂා කරන්න.");
+                        stopRecordingUI();
+                    }
                 }
             }
         }
@@ -259,15 +288,19 @@
         function startRecordingUI() {
             isRecording = true;
             const micBtn = document.getElementById('mic-btn');
+            const micText = document.getElementById('mic-text');
             micBtn.classList.add('recording');
-            document.getElementById('user-input').placeholder = "ශ්‍රවණය කරමින් පවතී... කතා කරන්න...";
+            micText.innerText = 'ශ්‍රවණය කරමින් පවතී... කතා කරන්න...';
+            document.getElementById('user-input').placeholder = "කතා කරන්න...";
         }
 
         function stopRecordingUI() {
             isRecording = false;
             const micBtn = document.getElementById('mic-btn');
+            const micText = document.getElementById('mic-text');
             micBtn.classList.remove('recording');
-            document.getElementById('user-input').placeholder = "ප්‍රශ්නයක් මෙහි ලියන්න හෝ මයික් එක ඔබන්න...";
+            micText.innerText = 'කතා කරන්න';
+            document.getElementById('user-input').placeholder = "ප්‍රශ්නයක් මෙහි ලියන්න...";
         }
 
         async function sendMessage() {
@@ -376,3 +409,4 @@
     </script>
 </body>
 </html>
+        
