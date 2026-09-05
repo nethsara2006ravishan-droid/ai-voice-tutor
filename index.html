@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A/L Voice AI Tutor</title>
+    <title>A/L All-Subjects AI Tutor</title>
     <style>
         * {
             box-sizing: border-box;
@@ -41,6 +41,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            padding-bottom: 80px;
         }
         .message {
             max-width: 90%;
@@ -61,7 +62,6 @@
             align-self: flex-end;
             border-bottom-right-radius: 2px;
         }
-        /* Voice button inside bot messages */
         .speak-btn {
             background: #334155;
             border: none;
@@ -78,7 +78,6 @@
         .speak-btn:hover {
             background: #475569;
         }
-        /* Mobile responsive tables */
         .message.bot table {
             width: 100%;
             border-collapse: collapse;
@@ -99,12 +98,17 @@
             margin-top: 5px;
         }
         #input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
             padding: 12px;
             background: #1e293b;
             display: flex;
             align-items: center;
             gap: 8px;
             border-top: 1px solid #334155;
+            z-index: 10;
         }
         #user-input {
             flex: 1;
@@ -129,35 +133,50 @@
             cursor: pointer;
             font-size: 14px;
         }
-        button#mic-btn.recording {
+        /* Modern Round Mic Button Style */
+        .icon-mic-btn {
+            background: #3b82f6;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            font-size: 18px;
+            color: white;
+            transition: 0.2s;
+        }
+        .icon-mic-btn.recording {
             background: #ef4444;
             animation: pulse 1.5s infinite;
         }
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
     </style>
-    <!-- Marked.js for rendering markdown & tables nicely -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
     <header>
         <div class="header-title">
-            <span>🧠</span>
-            <span>A/L ICT Tutor</span>
+            <span>🎓</span>
+            <span>A/L AI Tutor (All Subjects)</span>
         </div>
     </header>
 
     <div id="chat-container">
-        <div class="message bot">ආයුබෝවන්! මම ශ්‍රී ලංකා A/L ICT විෂය නිර්දේශයට අදාළව උගන්වන AI ටියුටර්. ඔබට අවශ්‍ය ප්‍රශ්නයක් අසන්න හෝ කතා කරන්න.</div>
+        <div class="message bot">ආයුබෝවන්! මම ශ්‍රී ලංකා උසස් පෙළ (A/L) ඕනෑම විෂයයක් සඳහා උගන්වන AI ටියුටර්. ඔබට අවශ්‍ය ප්‍රශ්නයක් ටයිප් කර හෝ පහත රවුම් මයික් බටන් එක ඔබා කතා කර අසන්න.</div>
     </div>
 
     <div id="input-container">
-        <input type="text" id="user-input" placeholder="ප්‍රශ්නයක් මෙහි ලියන්න..." onkeypress="handleKeyPress(event)">
-        <button id="mic-btn" onclick="toggleSpeechRecognition()">🎤 කතා කරන්න</button>
+        <button id="mic-btn" class="icon-mic-btn" onclick="toggleSpeechRecognition()" title="කතා කරන්න">🎙️</button>
+        <input type="text" id="user-input" placeholder="ප්‍රශ්නයක් මෙහි ලියන්න හෝ මයික් එක ඔබන්න..." onkeypress="handleKeyPress(event)">
         <button onclick="sendMessage()">යවන්න</button>
     </div>
 
@@ -188,7 +207,6 @@
             loadVoices();
         }
 
-        // Setup Speech Recognition (STT)
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
@@ -242,16 +260,14 @@
             isRecording = true;
             const micBtn = document.getElementById('mic-btn');
             micBtn.classList.add('recording');
-            micBtn.innerText = '🛑 නතර කරන්න';
-            document.getElementById('user-input').placeholder = "ශ්‍රවණය කරමින් පවතී... කතා කරන්න.";
+            document.getElementById('user-input').placeholder = "ශ්‍රවණය කරමින් පවතී... කතා කරන්න...";
         }
 
         function stopRecordingUI() {
             isRecording = false;
             const micBtn = document.getElementById('mic-btn');
             micBtn.classList.remove('recording');
-            micBtn.innerText = '🎤 කතා කරන්න';
-            document.getElementById('user-input').placeholder = "ප්‍රශ්නයක් මෙහි ලියන්න...";
+            document.getElementById('user-input').placeholder = "ප්‍රශ්නයක් මෙහි ලියන්න හෝ මයික් එක ඔබන්න...";
         }
 
         async function sendMessage() {
@@ -282,7 +298,7 @@
                     body: JSON.stringify({
                         system_instruction: {
                             parts: [
-                                { text: "ආයුබෝවන්! මම ශ්‍රී ලංකා උසස් පෙළ (A/L) ඕනෑම විෂයයක් (Physics, Combined Maths, Chemistry, ICT වැනි ඕනෑම දෙයක්) සඳහා උගන්වන AI ටියුටර්. ඔබට අවශ්‍ය විෂය ප්‍රශ්නයක් අසන්න හෝ කතා කරන්න." }
+                                { text: "ඔබ ශ්‍රී ලංකා උසස් පෙළ (A/L) විෂය නිර්දේශයේ ඕනෑම විෂයයක් (භෞතික විද්‍යාව, සංයුක්ත ගණිතය, රසායන විද්‍යාව, ICT ඇතුළු ඕනෑම විෂයයක්) උගන්වන ඉතා දක්ෂ AI ටියුටර් කෙනෙකි. සිසුන්ට සිංහල භාෂාවෙන් (අවශ්‍ය තැන්වල ඉංග්‍රීසි තාක්ෂණික වචනද සහිතව) පැහැදිලි, නිවැරදි සහ විභාග මට්ටමේ පිළිතුරු ලබා දෙන්න." }
                             ]
                         },
                         contents: [
@@ -302,7 +318,7 @@
 
                 if (response.ok && data.candidates && data.candidates[0].content) {
                     const reply = data.candidates[0].content.parts[0].text;
-                    appendMessage(reply, 'bot', false, null, true); // Pass true to enable speech button
+                    appendMessage(reply, 'bot', false, null, true);
                 } else {
                     console.error("Gemini API Error:", data);
                     const errorMsg = data.error?.message || 'සමාවන්න, දෝෂයක් සිදු විය.';
@@ -325,7 +341,6 @@
             if (sender === 'bot' && !isPlainText) {
                 msgDiv.innerHTML = marked.parse(text);
                 
-                // Add a listen button if requested
                 if (addSpeakButton) {
                     const speakBtn = document.createElement('button');
                     speakBtn.className = 'speak-btn';
@@ -361,4 +376,3 @@
     </script>
 </body>
 </html>
-          
