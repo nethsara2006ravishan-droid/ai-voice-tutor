@@ -66,6 +66,7 @@
             display: flex;
             gap: 8px;
             margin-top: 12px;
+            flex-wrap: wrap;
         }
         .action-btn {
             border: none;
@@ -246,15 +247,26 @@
             const speakBtn = document.createElement('button');
             speakBtn.className = 'action-btn speak-btn';
             speakBtn.innerHTML = '🔊 අහන්න';
-            speakBtn.onclick = function() {
-                startSpeech(welcomeText);
-            };
 
             const stopBtn = document.createElement('button');
             stopBtn.className = 'action-btn stop-btn';
             stopBtn.innerHTML = '⏹️ නවත්වන්න';
+
+            speakBtn.onclick = function() {
+                if (window.speechSynthesis.paused && window.speechSynthesis.speaking) {
+                    window.speechSynthesis.resume();
+                    speakBtn.innerHTML = '⏸️ නවත්වන්න';
+                } else if (!window.speechSynthesis.speaking) {
+                    startSpeech(welcomeText, speakBtn);
+                } else {
+                    window.speechSynthesis.pause();
+                    speakBtn.innerHTML = '▶️ දිගටම අහන්න';
+                }
+            };
+
             stopBtn.onclick = function() {
-                stopSpeech();
+                window.speechSynthesis.cancel();
+                speakBtn.innerHTML = '🔊 අහන්න';
             };
 
             btnGroup.appendChild(speakBtn);
@@ -265,7 +277,7 @@
         async function toggleAudioRecording() {
             if (!isRecording) {
                 try {
-                    stopSpeech();
+                    window.speechSynthesis.cancel();
 
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
@@ -318,7 +330,7 @@
             const inputField = document.getElementById('user-input');
             const text = inputField.value.trim();
             if (!text) return;
-            stopSpeech();
+            window.speechSynthesis.cancel();
             inputField.value = '';
             await processGeminiRequest(text, null);
         }
@@ -405,15 +417,26 @@
                     const speakBtn = document.createElement('button');
                     speakBtn.className = 'action-btn speak-btn';
                     speakBtn.innerHTML = '🔊 අහන්න';
-                    speakBtn.onclick = function() {
-                        startSpeech(text);
-                    };
 
                     const stopBtn = document.createElement('button');
                     stopBtn.className = 'action-btn stop-btn';
                     stopBtn.innerHTML = '⏹️ නවත්වන්න';
+
+                    speakBtn.onclick = function() {
+                        if (window.speechSynthesis.paused && window.speechSynthesis.speaking) {
+                            window.speechSynthesis.resume();
+                            speakBtn.innerHTML = '⏸️ නවත්වන්න';
+                        } else if (!window.speechSynthesis.speaking) {
+                            startSpeech(text, speakBtn);
+                        } else {
+                            window.speechSynthesis.pause();
+                            speakBtn.innerHTML = '▶️ දිගටම අහන්න';
+                        }
+                    };
+
                     stopBtn.onclick = function() {
-                        stopSpeech();
+                        window.speechSynthesis.cancel();
+                        speakBtn.innerHTML = '🔊 අහන්න';
                     };
 
                     btnGroup.appendChild(speakBtn);
@@ -428,17 +451,10 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function stopSpeech() {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
-        }
-
-        function startSpeech(text) {
+        function startSpeech(text, btn) {
             if (!('speechSynthesis' in window)) return;
 
-            // Stop any ongoing speech first
-            stopSpeech();
+            window.speechSynthesis.cancel();
 
             const cleanText = text.replace(/[*#_`~>\[\]()-]|<[^>]*>?/gm, '');
             const utterance = new SpeechSynthesisUtterance(cleanText);
@@ -449,6 +465,16 @@
             
             utterance.lang = 'si-LK';
             utterance.rate = 0.9;
+
+            btn.innerHTML = '⏸️ නවත්වන්න';
+
+            utterance.onend = function() {
+                btn.innerHTML = '🔊 අහන්න';
+            };
+
+            utterance.onerror = function() {
+                btn.innerHTML = '🔊 අහන්න';
+            };
 
             window.speechSynthesis.speak(utterance);
         }
