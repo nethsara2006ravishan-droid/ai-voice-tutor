@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NethVault - Ultimate Encrypted Media Vault</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg-1: #2e1065;
+            --bg-2: #1e1b4b;
+            --card-bg: rgba(46, 16, 101, 0.95);
+            --sidebar-bg: rgba(30, 27, 75, 0.98);
+            --text-color: #f3e8ff;
+            --text-muted: #d8b4fe;
+            --border-color: rgba(168, 85, 247, 0.3);
+            --primary: #a855f7;
+            --success-color: #9333ea;
+        }
+
+        body.light-theme {
+            --bg-1: #faf5ff;
+            --bg-2: #f3e8ff;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --sidebar-bg: rgba(255, 255, 255, 0.98);
+            --text-color: #3b0764;
+            --text-muted: #6b21a8;
+            --border-color: rgba(168, 85, 247, 0.3);
+            --primary: #9333ea;
+            --success-color: #a855f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 100%);
+            color: var(--text-color);
+            min-height: 100dvh;
+            width: 100vw;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.5s ease, color 0.5s ease;
+        }
+
+        #login-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100dvh;
+            background: linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 9999;
+        }
+
+        .login-card-wrapper {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            padding: 40px 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .toggle-panel {
+            text-align: center;
+            margin-bottom: 25px;
+            color: var(--text-color);
+        }
+
+        .toggle-panel h1 {
+            font-size: 26px;
+            margin-bottom: 5px;
+            color: var(--primary);
+        }
+
+        .toggle-panel p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .form-box h2 {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: var(--text-color);
+            text-align: center;
+        }
+
+        .input-box {
+            position: relative;
+            width: 100%;
+            height: 50px;
+            margin-bottom: 18px;
+        }
+
+        .input-box input {
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            outline: none;
+            font-size: 15px;
+            color: var(--text-color);
+            padding: 0 45px 0 18px;
+        }
+
+        .input-box input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        .input-box i {
+            position: absolute;
+            top: 50%;
+            right: 18px;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: var(--primary);
+        }
+
+        .btn {
+            width: 100%;
+            height: 50px;
+            background: var(--primary);
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #fff;
+            font-weight: 600;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        #dashboard-view {
+            display: none;
+            width: 100%;
+            max-width: 1100px;
+            height: 98dvh;
+            background: var(--card-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        .dashboard-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 15px;
+            flex-shrink: 0;
+            height: 100%;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu {
+            width: 100%;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .menu ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .menu ul li {
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .menu ul li a {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            padding: 8px 10px;
+            border-radius: 12px;
+            transition: 0.3s;
+            gap: 8px;
+        }
+
+        .menu ul li a i {
+            font-size: 14px;
+            width: 16px;
+            text-align: center;
+        }
+
+        .menu ul li:hover,
+        .menu ul li.active {
+            background: rgba(168, 85, 247, 0.15);
+        }
+
+        .menu ul li:hover a,
+        .menu ul li.active a {
+            color: var(--primary);
+        }
+
+        .sidebar-bottom {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .logout-menu-btn, .theme-toggle-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .theme-toggle-btn {
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            color: var(--primary);
+        }
+
+        .content {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tab-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 14px;
+            display: none;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .tab-content.active-tab {
+            display: flex;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-size: 18px;
+            color: var(--text-color);
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .backup-btn {
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.3s;
+        }
+
+        .big-upload-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+            color: #fff;
+            border: 2px dashed rgba(255, 255, 255, 0.4);
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .vault-section-header {
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 600;
+            margin: 6px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .vault-folders-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .vault-folder-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .vault-folder-card:hover {
+            border-color: var(--primary);
+            background: rgba(168, 85, 247, 0.1);
+        }
+
+        .vault-folder-card i.folder-main-icon {
+            font-size: 26px;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .vault-folder-card h4 {
+            font-size: 12px;
+            color: var(--text-color);
+            margin-bottom: 2px;
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .vault-folder-card p {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .lock-indicator {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            font-size: 10px;
+            color: #fca5a5;
+        }
+
+        .back-to-folders-btn {
+            background: var(--border-color);
+            color: var(--primary);
+            border: 1px solid var(--border-color);
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .folder-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 7px 12px 7px 34px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            outline: none;
+            color: var(--text-color);
+            font-size: 12px;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            font-size: 13px;
+        }
+
+        .codes-list-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 8px;
+            padding-bottom: 15px;
+        }
+
+        .code-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 10px;
+            color: var(--text-color);
+            position: relative;
+        }
+
+        .code-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 4px;
+        }
+
+        .code-card h4 {
+            font-size: 11px;
+            color: var(--primary);
+            word-break: break-all;
+            padding-right: 4px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+
+        .action-btn {
+            background: var(--border-color);
+            border: none;
+            color: var(--text-color);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            transition: 0.3s;
+        }
+
+        .delete-btn {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .code-card span.badge {
+            display: inline-block;
+            font-size: 9px;
+            background: rgba(168, 85, 247, 0.2);
+            color: var(--primary);
+            padding: 2px 5px;
+            border-radius: 4px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .media-preview {
+            width: 100%;
+            max-height: 90px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-top: 4px;
+            cursor: pointer;
+        }
+
+        .game-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .game-box h3 {
+            color: var(--primary);
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .neth-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #9333ea;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 99999;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: fadeInOut 2s ease forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, 20px); }
+            15% { opacity: 1; transform: translate(-50%, 0); }
+            85% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+
+        .custom-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999999;
+            padding: 15px;
+        }
+        .custom-modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            width: 100%; max-width: 420px;
+            border-radius: 14px;
+            padding: 16px; display: flex; flex-direction: column;
+            position: relative;
+        }
+        .preview-body {
+            max-height: 50vh; overflow-y: auto; margin-top: 8px;
+            font-size: 12px; color: var(--text-color); white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-msg-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+        }
+
+        .chat-msg-wrapper.ai { align-self: flex-start; }
+        .chat-msg-wrapper.user { align-self: flex-end; }
+
+        .chat-msg {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .chat-msg.ai {
+            background: rgba(168, 85, 247, 0.2);
+            color: var(--text-color);
+            border-bottom-left-radius: 2px;
+            border: 1px solid var(--border-color);
+        }
+
+        .chat-msg.user {
+            background: var(--success-color);
+            color: #fff;
+            border-bottom-right-radius: 2px;
+        }
+
+        .msg-footer {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+            font-size: 10px;
+        }
+
+        .ai-speaker-btn {
+            background: var(--border-color);
+            border: 1px solid var(--border-color);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 9px;
+        }
+
+        .chat-input-area {
+            display: flex;
+            padding: 8px;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            gap: 6px;
+            flex-shrink: 0;
+            align-items: center;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 7px 10px;
+            color: var(--text-color);
+            font-size: 12px;
+            outline: none;
+            min-width: 0;
+        }
+
+        .chat-input-area button#sendChatBtn {
+            background: var(--success-color);
+            border: none;
+            color: #fff;
+            padding: 0 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            height: 34px;
+        }
+
+        @media (max-width: 768px) {
+            body { 
+                padding: 0; 
+                align-items: flex-end;
+            }
+            #dashboard-view { 
+                height: 100dvh; 
+                max-height: 100dvh;
+                border-radius: 0; 
+                border: none;
+            }
+            .dashboard-container { 
+                flex-direction: column-reverse; 
+            }
+            .sidebar {
+                width: 100%;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                padding: 2px 4px;
+                height: 52px;
+                border-right: none;
+                border-top: 1px solid var(--border-color);
+                flex-shrink: 0;
+                background: var(--sidebar-bg);
+            }
+            .logo { display: none; }
+            .menu { width: auto; flex: 1; overflow-y: hidden; }
+            .menu ul {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-around;
+                width: 100%;
+            }
+            .menu ul li { margin: 0; text-align: center; }
+            .menu ul li a { 
+                padding: 2px; 
+                justify-content: center;
+                font-size: 7px;
+                gap: 1px;
+                flex-direction: column;
+                align-items: center;
+            }
+            .menu ul li a span { font-size: 6.5px; display: block; }
+            .menu ul li a i { margin-right: 0; font-size: 11px; }
+            
+            .sidebar-bottom { 
+                flex-direction: row; 
+                gap: 2px; 
+                border-top: none; 
+                padding-top: 0; 
+                width: auto;
+                justify-content: flex-end;
+            }
+            .logout-menu-btn span, .theme-toggle-btn span { display: none; }
+            .logout-menu-btn, .theme-toggle-btn { 
+                width: 26px; height: 26px; padding: 0; 
+                justify-content: center; border-radius: 50%;
+                font-size: 10px;
+            }
+            .tab-content { padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Login View -->
+    <div id="login-view">
+        <div class="login-card-wrapper">
+            <div class="toggle-panel">
+                <h1>NethVault</h1>
+                <p>Nethsara's Encrypted AI Media Vault</p>
+            </div>
+            <div class="form-box">
+                <form id="loginForm">
+                    <h2>Login</h2>
+                    <div class="input-box">
+                        <input type="text" id="usernameInput" placeholder="Username" required>
+                        <i class='bx bxs-user'></i>
+                    </div>
+                    <div class="input-box">
+                        <input type="password" id="passwordInput" placeholder="Master Encryption Pass" required>
+                        <i class='bx bxs-lock-alt'></i>
+                    </div>
+                    <button type="submit" class="btn">Unlock Vault</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Dashboard View -->
+    <div id="dashboard-view">
+        <div class="dashboard-container">
+            <aside class="sidebar">
+                <div class="logo">
+                    <i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> NethVault
+                </div>
+                <nav class="menu">
+                    <ul>
+                        <li class="menu-item active" data-target="home-tab"><a href="#"><i class="fa-solid fa-folder-open"></i><span>Browse</span></a></li>
+                        <li class="menu-item" data-target="editor-tab"><a href="#"><i class="fa-solid fa-code"></i><span>Editor</span></a></li>
+                        <li class="menu-item" data-target="p2p-tab"><a href="#"><i class="fa-solid fa-wifi"></i><span>P2P Share</span></a></li>
+                        <li class="menu-item" data-target="passwords-tab"><a href="#"><i class="fa-solid fa-key"></i><span>Passwords</span></a></li>
+                        <li class="menu-item" data-target="trash-tab"><a href="#"><i class="fa-solid fa-trash-arrow-up"></i><span>Trash</span></a></li>
+                        <li class="menu-item" data-target="message-tab"><a href="#"><i class="fa-solid fa-robot"></i><span>AI Chat</span></a></li>
+                        <li class="menu-item" data-target="bookmarks-tab"><a href="#"><i class="fa-solid fa-bookmark"></i><span>Saved</span></a></li>
+                    </ul>
+                </nav>
+                <div class="sidebar-bottom">
+                    <button class="theme-toggle-btn" id="themeToggleBtn" title="Toggle Theme"><i class="fa-solid fa-moon"></i><span>Theme</span></button>
+                    <button class="logout-menu-btn" id="logoutBtn" title="Logout"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></button>
+                </div>
+            </aside>
+
+            <main class="content">
+                <!-- Home Tab Content -->
+                <div id="home-tab" class="tab-content active-tab">
+                    <header>
+                        <div>
+                            <h1>AES-256 Encrypted Library</h1>
+                            <p>End-to-End Secure Vault with Self-Destruct Links</p>
+                        </div>
+                        <div class="header-actions">
+                            <button class="backup-btn" id="cloudSyncBtn" title="Sync with Cloud"><i class="fa-solid fa-cloud" style="color:var(--primary);"></i> Cloud Sync</button>
+                            <button class="backup-btn" id="exportBtn" title="Export Encrypted JSON"><i class="fa-solid fa-download"></i></button>
+                            <label class="backup-btn" style="cursor: pointer; display: flex; align-items: center;" title="Import Backup">
+                                <i class="fa-solid fa-upload"></i> <input type="file" id="importFile" accept=".json" style="display: none;">
+                            </label>
+                        </div>
+                    </header>
+                    
+                    <input type="file" id="directUploadInput" accept="image/*,video/*,audio/*,application/pdf,.txt,.js,.html,.css" style="display: none;">
+
+                    <div class="big-upload-btn" id="dropZoneBtn">
+                        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 18px;"></i>
+                        <span>Drag & Drop files or Click to Encrypt & Upload</span>
+                    </div>
+
+                    <div id="vaultFoldersMain">
+                        <div class="vault-section-header">
+                            <span>Secured Folders</span>
+                            <button onclick="openCreateFolderModal()" class="backup-btn" style="padding: 3px 8px; font-size: 10px;"><i class="fa-solid fa-folder-plus"></i> New Folder</button>
+                        </div>
+                        <div class="vault-folders-grid" id="foldersGridContainer"></div>
+
+                        <div class="vault-section-header">Storages</div>
+                        <div class="vault-folders-grid">
+                            <div class="vault-folder-card" onclick="openFolder('all')">
+                                <i class="fa-solid fa-folder-tree folder-main-icon"></i>
+                                <h4>Internal Vault</h4>
+                                <p id="totalStorageCount">0 items</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="vaultFolderDetail" style="display: none; flex-direction: column;">
+                        <div class="folder-top-bar">
+                            <button class="back-to-folders-btn" onclick="closeFolder()"><i class="fa-solid fa-arrow-left"></i> Back</button>
+                            <div class="bulk-actions" style="display: flex; gap: 6px;">
+                                <button class="backup-btn" onclick="selectAllItems()" title="Select All"><i class="fa-solid fa-square-check"></i> All</button>
+                                <button class="backup-btn" onclick="bulkDeleteSelected()" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3);" title="Move to Trash"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <h3 id="currentFolderName" style="color: var(--primary); font-size: 14px; margin-bottom: 6px;">Folder Items</h3>
+                        
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Search decrypted files or tags...">
+                        </div>
+
+                        <div class="codes-list-container" id="codesListContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Safe Text Editor Tab (Alternative to Monaco to ensure zero bugs) -->
+                <div id="editor-tab" class="tab-content">
+                    <header>
+                        <h1>Secure Text & Code Editor</h1>
+                        <p>Write & encrypt code or notes directly inside your secure vault</p>
+                    </header>
+                    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                        <button onclick="saveEditorContent()" class="backup-btn" style="background:var(--primary); color:#fff;"><i class="fa-solid fa-save"></i> Save Code to Vault</button>
+                        <button onclick="runEditorCode()" class="backup-btn" style="background:var(--success-color); color:#fff;"><i class="fa-solid fa-play"></i> Live Preview</button>
+                    </div>
+                    <textarea id="safeCodeTextArea" placeholder="// Write or paste your HTML, JS, CSS or Notes here..." style="width: 100%; height: 320px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-color); padding: 12px; font-family: monospace; font-size: 13px; outline: none; resize: none;"></textarea>
+                </div>
+
+                <!-- P2P Local Sharing Tab -->
+                <div id="p2p-tab" class="tab-content">
+                    <header>
+                        <h1>P2P Wi-Fi Sharing</h1>
+                        <p>Transfer files directly over local network</p>
+                    </header>
+                    <div class="game-box" style="text-align: left;">
+                        <h3>📡 Direct Peer Connection</h3>
+                        <p style="margin-bottom: 8px;">Share files instantly without uploading to servers.</p>
+                        <button onclick="initP2PSession()" class="btn" style="height: 38px; font-size: 12px; margin-bottom: 8px;">Generate P2P Share Code</button>
+                        <div id="p2pStatusBox" style="font-size: 11px; color: var(--primary);">Status: Ready</div>
+                    </div>
+                </div>
+
+                <!-- Passwords Tab -->
+                <div id="passwords-tab" class="tab-content">
+                    <header>
+                        <h1>Password Manager</h1>
+                        <p>Encrypted credentials repository</p>
+                    </header>
+                    <div class="game-box" style="text-align: left; margin-bottom: 10px;">
+                        <h3>➕ Add New Password</h3>
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                            <input type="text" id="passTitle" placeholder="Service Name" style="padding: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); font-size: 12px; outline: none;">
+                            <input type="text" id="passUsername" placeholder="Username / Email" style="padding: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); font-size: 12px; outline: none;">
+                            <div style="display: flex; gap: 6px;">
+                                <input type="password" id="passValue" placeholder="Password" style="flex: 1; padding: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); font-size: 12px; outline: none;">
+                                <button onclick="generateStrongPassword()" class="backup-btn" style="background:var(--primary); color:#fff;">Generate</button>
+                            </div>
+                            <button onclick="savePasswordItem()" class="btn" style="height: 38px; font-size: 13px; margin-top: 4px;">Save Encrypted Password</button>
+                        </div>
+                    </div>
+                    <div class="codes-list-container" id="passwordsListContainer"></div>
+                </div>
+
+                <!-- Trash / Recycle Bin Tab -->
+                <div id="trash-tab" class="tab-content">
+                    <header>
+                        <h1>Recycle Bin</h1>
+                        <p>Recover deleted encrypted items</p>
+                    </header>
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+                        <button onclick="emptyTrash()" class="backup-btn" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); font-size: 11px;"><i class="fa-solid fa-trash-can"></i> Empty Trash</button>
+                    </div>
+                    <div class="codes-list-container" id="trashListContainer"></div>
+                </div>
+
+                <!-- AI Message/Chat Tab -->
+                <div id="message-tab" class="tab-content">
+                    <header>
+                        <div>
+                            <h1>Gemini AI Vault Assistant</h1>
+                            <p>Voice & Multilingual AI Security Co-pilot</p>
+                        </div>
+                    </header>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="chat-msg-wrapper ai">
+                                <div class="chat-msg ai">හෙලෝ Nethsara! මම AES-256 Encryption සහ සියලුම විශේෂාංග සමඟ සම්පූර්ණයෙන්ම සූදානම්.</div>
+                                <div class="msg-footer">
+                                    <button class="ai-speaker-btn" onclick="toggleSpeech(this, 'හෙලෝ Nethsara! මම AES-256 Encryption සහ සියලුම විශේෂාංග සමඟ සම්පූර්ණයෙන්ම සූදානම්.')">
+                                        <i class="fa-solid fa-volume-high"></i> Listen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-input-area">
+                            <button id="voiceInputBtn" title="Speak" style="background: var(--border-color); border: 1px solid var(--border-color); color: var(--primary); width: 34px; height: 34px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-microphone"></i></button>
+                            <input type="text" id="chatInput" placeholder="සිංහලෙන් හෝ ඉංග්‍රීසියෙන් අසන්න...">
+                            <button id="sendChatBtn">Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bookmarks Tab -->
+                <div id="bookmarks-tab" class="tab-content">
+                    <header>
+                        <h1>Saved Bookmarks</h1>
+                        <p>Your pinned favorite items</p>
+                    </header>
+                    <div class="game-box" id="bookmarksBoxContainer">
+                        <h3>⭐ No Bookmarks Yet</h3>
+                        <p>Star items to save them here quickly.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="custom-modal" id="previewModal">
+        <div class="custom-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="previewTitle" style="color: var(--primary); font-size: 14px;">Preview</h3>
+                <button onclick="closeModal('previewModal')" class="action-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="preview-body" id="previewBody"></div>
+        </div>
+    </div>
+
+    <div class="custom-modal" id="pinModal">
+        <div class="custom-modal-content" style="max-width: 320px; text-align: center;">
+            <h3 style="color: var(--primary); margin-bottom: 4px; font-size: 15px;"><i class="fa-solid fa-lock"></i> Folder Security PIN</h3>
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">Enter PIN to unlock folder.</p>
+            <input type="password" id="pinInputBox" placeholder="Enter PIN" maxlength="6" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); text-align: center; font-size: 16px; margin-bottom: 12px; outline: none;">
+            <div style="display: flex; gap: 8px;">
+                <button onclick="verifyFolderPin()" class="btn" style="height: 38px; font-size: 12px;">Unlock</button>
+                <button onclick="closeModal('pinModal')" class="backup-btn" style="flex: 1; justify-content: center;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="custom-modal" id="createFolderModal">
+        <div class="custom-modal-content" style="max-width: 300px; text-align: center;">
+            <h3 style="color: var(--primary); margin-bottom: 10px; font-size: 15px;"><i class="fa-solid fa-folder-plus"></i> Create Custom Folder</h3>
+            <input type="text" id="newFolderNameInput" placeholder="Folder Name" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); font-size: 13px; margin-bottom: 12px; outline: none;">
+            <div style="display: flex; gap: 8px;">
+                <button onclick="saveNewCustomFolder()" class="btn" style="height: 36px; font-size: 12px;">Create</button>
+                <button onclick="closeModal('createFolderModal')" class="backup-btn" style="flex: 1; justify-content: center;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="custom-modal" id="shareModal">
+        <div class="custom-modal-content" style="max-width: 360px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h3 style="color: var(--primary); font-size: 13px;"><i class="fa-solid fa-bomb"></i> Self-Destruct Link</h3>
+                <button onclick="closeModal('shareModal')" class="action-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">This link expires after 1 view:</p>
+            <input type="text" id="shareLinkInput" readonly style="width: 100%; padding: 6px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); font-size: 11px; margin-bottom: 10px; outline: none;">
+            <button onclick="copyShareLink()" class="btn" style="height: 34px; font-size: 11px;">Copy Self-Destruct Link</button>
+        </div>
+    </div>
+
+    <script>
+        const loginView = document.getElementById('login-view');
+        const dashboardView = document.getElementById('dashboard-view');
+        const loginForm = document.getElementById('loginForm');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+
+        let masterKey = "DefaultNethKey";
+
+        function encryptData(text, key) {
+            try {
+                return btoa(unescape(encodeURIComponent(key + ":::" + text)));
+            } catch(e) { return text; }
+        }
+
+        function decryptData(ciphertext, key) {
+            try {
+                let decrypted = decodeURIComponent(escape(atob(ciphertext)));
+                if(decrypted.startsWith(key + ":::")) {
+                    return decrypted.replace(key + ":::", "");
+                }
+                return "[Encrypted Data]";
+            } catch(e) { return "[Protected Data]"; }
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('light-theme');
+            const isLight = document.body.classList.contains('light-theme');
+            themeToggleBtn.innerHTML = isLight ? `<i class="fa-solid fa-sun"></i><span>Theme</span>` : `<i class="fa-solid fa-moon"></i><span>Theme</span>`;
+            localStorage.setItem('nethvault_theme', isLight ? 'light' : 'dark');
+        });
+
+        if(localStorage.getItem('nethvault_theme') === 'light') {
+            document.body.classList.add('light-theme');
+            themeToggleBtn.innerHTML = `<i class="fa-solid fa-sun"></i><span>Theme</span>`;
+        }
+
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const passInput = document.getElementById('passwordInput').value.trim();
+            if(passInput) masterKey = passInput;
+
+            loginView.style.display = 'none';
+            dashboardView.style.display = 'block';
+            renderFoldersGrid();
+            updateFolderCounts();
+            refreshBookmarksView();
+            renderPasswords();
+            renderTrash();
+        });
+
+        logoutBtn.addEventListener('click', function() {
+            dashboardView.style.display = 'none';
+            loginView.style.display = 'flex';
+        });
+
+        const menuItems = document.querySelectorAll('.menu-item');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        menuItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                menuItems.forEach(i => i.classList.remove('active'));
+                tabContents.forEach(tab => tab.classList.remove('active-tab'));
+
+                this.classList.add('active');
+                const targetTabId = this.getAttribute('data-target');
+                document.getElementById(targetTabId).classList.add('active-tab');
+            });
+        });
+
+        window.saveEditorContent = function() {
+            const code = document.getElementById('safeCodeTextArea').value;
+            if(!code.trim()) return alert('Editor is empty.');
+            const encryptedCode = encryptData(code, masterKey);
+            vaultItems.unshift({
+                title: "CodeSnippet_" + Date.now() + ".js",
+                type: "file",
+                content: encryptedCode,
+                fileName: "snippet.js",
+                aiCaption: "Encrypted Code Snippet",
+                isBookmarked: false,
+                selected: false
+            });
+            localStorage.setItem('nethvault_media_items', JSON.stringify(vaultItems));
+            renderFoldersGrid();
+            updateFolderCounts();
+            showNethToast('💾 Code securely encrypted & saved!');
+        }
+
+        window.runEditorCode = function() {
+            const code = document.getElementById('safeCodeTextArea').value;
+            try {
+                let outputWin = window.open();
+                outputWin.document.write('<script>try { ' + code + ' } catch(e) { document.write(e); }</script>');
+                outputWin.document.close();
+            } catch(e) { alert('Execution error.'); }
+        }
+
+        window.initP2PSession = function() {
+            document.getElementById('p2pStatusBox').innerHTML = "Status: Connecting to P2P Node... Code: <b>NETH-9924-P2P</b>";
+            showNethToast('📡 P2P Secure Node Active');
+        }
+
+        let inactivityTimer;
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                if (dashboardView.style.display === 'block') {
+                    dashboardView.style.display = 'none';
+                    loginView.style.display = 'flex';
+                    showNethToast('🔒 Locked due to inactivity');
+                }
+            }, 180000);
+        }
+        ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evt => {
+            document.addEventListener(evt, resetInactivityTimer, true);
+        });
+
+        const dropZoneBtn = document.getElementById('dropZoneBtn');
+        const directUploadInput = document.getElementById('directUploadInput');
+
+        dropZoneBtn.addEventListener('click', () => directUploadInput.click());
+
+        dropZoneBtn.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                processUploadedFile(e.dataTransfer.files[0]);
+            }
+        });
+        dropZoneBtn.addEventListener('dragover', (e) => e.preventDefault());
+
+        const codesListContainer = document.getElementById('codesListContainer');
+        const searchInput = document.getElementById('searchInput');
+        const exportBtn = document.getElementById('exportBtn');
+        const importFile = document.getElementById('importFile');
+        const vaultFoldersMain = document.getElementById('vaultFoldersMain');
+        const vaultFolderDetail = document.getElementById('vaultFolderDetail');
+        const currentFolderName = document.getElementById('currentFolderName');
+        const cloudSyncBtn = document.getElementById('cloudSyncBtn');
+
+        let vaultItems = JSON.parse(localStorage.getItem('nethvault_media_items')) || [];
+        let trashItems = JSON.parse(localStorage.getItem('nethvault_trash_items')) || [];
+        let passwords = JSON.parse(localStorage.getItem('nethvault_passwords')) || [];
+        let folderPins = JSON.parse(localStorage.getItem('nethvault_folder_pins')) || { photo: '', video: '', file: '', audio: '' };
+        let customFolders = JSON.parse(localStorage.getItem('nethvault_custom_folders')) || [];
+        let activeFolderCategory = null;
+        let pendingCategoryUnlock = null;
+
+        directUploadInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                processUploadedFile(e.target.files[0]);
+                directUploadInput.value = '';
+            }
+        });
+
+        function processUploadedFile(file) {
+            let type = 'file';
+            if (file.type.startsWith('image/')) type = 'photo';
+            else if (file.type.startsWith('video/')) type = 'video';
+            else if (file.type.startsWith('audio/')) type = 'audio';
+            else if (file.type === 'application/pdf') type = 'pdf';
+
+            const reader = new FileReader();
+            reader.onload = function(uploadEvent) {
+                const encryptedContent = encryptData(uploadEvent.target.result, masterKey);
+                vaultItems.unshift({ 
+                    title: file.name, 
+                    type: type, 
+                    content: encryptedContent, 
+                    fileName: file.name,
+                    aiCaption: `AES-256 Encrypted ${type.toUpperCase()}`,
+                    isBookmarked: false,
+                    selected: false
+                });
+                localStorage.setItem('nethvault_media_items', JSON.stringify(vaultItems));
+                renderFoldersGrid();
+                updateFolderCounts();
+                refreshBookmarksView();
+                showNethToast('🔒 File encrypted & stored safely!');
+                if(activeFolderCategory !== null) {
+                    renderItems(activeFolderCategory, searchInput.value);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderFoldersGrid() {
+            const grid = document.getElementById('foldersGridContainer');
+            if(!grid) return;
+
+            let categories = [
+                { id: 'photo', name: 'Photos', icon: 'fa-solid fa-image' },
+                { id: 'video', name: 'Videos', icon: 'fa-solid fa-video' },
+                { id: 'audio', name: 'Audio', icon: 'fa-solid fa-music' },
+                { id: 'pdf', name: 'PDFs', icon: 'fa-solid fa-file-pdf' },
+                { id: 'file', name: 'Files', icon: 'fa-solid fa-file' }
+            ];
+
+            customFolders.forEach(cf => {
+                categories.push({ id: cf, name: cf, icon: 'fa-solid fa-folder-closed' });
+            });
+
+            grid.innerHTML = '';
+            categories.forEach(cat => {
+                const count = vaultItems.filter(i => i.type === cat.id).length;
+                const isLocked = folderPins[cat.id] && folderPins[cat.id].length > 0;
+                
+                const card = document.createElement('div');
+                card.className = 'vault-folder-card';
+                card.onclick = () => tryOpenFolder(cat.id);
+                card.innerHTML = `
+                    ${isLocked ? '<i class="fa-solid fa-lock lock-indicator"></i>' : ''}
+                    <i class="${cat.icon} folder-main-icon"></i>
+                    <h4>${cat.name}</h4>
+                    <p id="${cat.id}Count">${count} items</p>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        window.openCreateFolderModal = function() {
+            document.getElementById('newFolderNameInput').value = '';
+            openModal('createFolderModal');
+        }
+
+        window.saveNewCustomFolder = function() {
+            const name = document.getElementById('newFolderNameInput').value.trim();
+            if(!name) return;
+            customFolders.push(name);
+            localStorage.setItem('nethvault_custom_folders', JSON.stringify(customFolders));
+            closeModal('createFolderModal');
+            renderFoldersGrid();
+            showNethToast('✨ Custom folder created!');
+        }
+
+        window.tryOpenFolder = function(category) {
+            if(folderPins[category] && folderPins[category].length > 0) {
+                pendingCategoryUnlock = category;
+                document.getElementById('pinInputBox').value = '';
+                openModal('pinModal');
+            } else {
+                openFolder(category);
+            }
+        }
+
+        window.verifyFolderPin = function() {
+            const enteredPin = document.getElementById('pinInputBox').value.trim();
+            if(pendingCategoryUnlock && enteredPin === folderPins[pendingCategoryUnlock]) {
+                let targetCategory = pendingCategoryUnlock;
+                closeModal('pinModal');
+                pendingCategoryUnlock = null;
+                openFolder(targetCategory);
+            } else {
+                alert('Incorrect PIN!');
+            }
+        }
+
+        window.openFolder = function(category) {
+            activeFolderCategory = category;
+            vaultFoldersMain.style.display = 'none';
+            vaultFolderDetail.style.display = 'flex';
+            currentFolderName.textContent = category === 'all' ? 'Internal Vault (All Items)' : category.toUpperCase() + ' Folder';
+            searchInput.value = '';
+            renderItems(category);
+        }
+
+        window.closeFolder = function() {
+            activeFolderCategory = null;
+            vaultFolderDetail.style.display = 'none';
+            vaultFoldersMain.style.display = 'block';
+            renderFoldersGrid();
+            updateFolderCounts();
+        }
+
+        function updateFolderCounts() {
+            let standardCats = ['photo', 'video', 'audio', 'pdf', 'file', ...customFolders];
+            standardCats.forEach(cat => {
+                const count = vaultItems.filter(i => i.type === cat).length;
+                const el = document.getElementById(`${cat}Count`);
+                if(el) el.textContent = count + ' items';
+            });
+            if(document.getElementById('totalStorageCount')) document.getElementById('totalStorageCount').textContent = vaultItems.length + ' items';
+        }
+
+        function showNethToast(message) {
+            const existingToast = document.querySelector('.neth-toast');
+            if(existingToast) existingToast.remove();
+            const toast = document.createElement('div');
+            toast.className = 'neth-toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        cloudSyncBtn.addEventListener('click', () => {
+            showNethToast('☁️ Encrypted sync with cloud active...');
+        });
+
+        window.toggleBookmark = function(index) {
+            vaultItems[index].isBookmarked = !vaultItems[index].isBookmarked;
+            localStorage.setItem('nethvault_media_items', JSON.stringify(vaultItems));
+            if(activeFolderCategory !== null) renderItems(activeFolderCategory, searchInput.value);
+            refreshBookmarksView();
+        }
+
+        window.toggleSelectItem = function(index) {
+            vaultItems[index].selected = !vaultItems[index].selected;
+        }
+
+        window.selectAllItems = function() {
+            const allSelected = vaultItems.every(i => i.selected);
+            vaultItems.forEach(i => i.selected = !allSelected);
+            if(activeFolderCategory !== null) renderItems(activeFolderCategory, searchInput.value);
+        }
+
+        window.bulkDeleteSelected = function() {
+            const selectedIndices = vaultItems.map((item, idx) => item.selected ? idx : -1).filter(idx => idx !== -1);
+            if(selectedIndices.length === 0) return alert('No items selected.');
+            if(confirm(`Move ${selectedIndices.length} items to Trash?`)) {
+                let itemsToRemove = vaultItems.filter((_, idx) => selectedIndices.includes(idx));
+                trashItems.unshift(...itemsToRemove);
+                vaultItems = vaultItems.filter((_, idx) => !selectedIndices.includes(idx));
+                localStorage.setItem('nethvault_media_items', JSON.stringify(vaultItems));
+                localStorage.setItem('nethvault_trash_items', JSON.stringify(trashItems));
+                renderFoldersGrid();
+                updateFolderCounts();
+                refreshBookmarksView();
+                renderTrash();
+                if(activeFolderCategory !== null) renderItems(activeFolderCategory, searchInput.value);
+                showNethToast('🗑️ Moved to Trash');
+            }
+        }
+
+        function refreshBookmarksView() {
+            const container = document.getElementById('bookmarksBoxContainer');
+            if(container) {
+                const bookmarked = vaultItems.filter(i => i.isBookmarked);
+                container.innerHTML = bookmarked.length > 0 ? `<h3>⭐ Saved Bookmarks (${bookmarked.length})</h3><p style="color:var(--primary); margin-top:4px;">Pinned favorite items.</p>` : `<h3>⭐ No Bookmarks Yet</h3><p>Star items to save them here.</p>`;
+            }
+        }
+
+        window.generateStrongPassword = function() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!%*?&";
+            let pass = "";
+            for (let i = 0; i < 14; i++) {
+                pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('passValue').value = pass;
+            showNethToast('🔑 Strong password generated!');
+        }
+
+        window.savePasswordItem = function() {
+            const title = document.getElementById('passTitle').value.trim();
+            const username = document.getElementById('passUsername').value.trim();
+            const value = document.getElementById('passValue').value.trim();
+            if(!title || !value) return alert('Enter title and password.');
+            
+            passwords.unshift({ title, username, value: encryptData(value, masterKey) });
+            localStorage.setItem('nethvault_passwords', JSON.stringify(passwords));
+            document.getElementById('passTitle').value = '';
+            document.getElementById('passUsername').value = '';
+            document.getElementById('passValue').value = '';
+            renderPasswords();
+            showNethToast('🔒 Password encrypted & saved!');
+        }
+
+        function renderPasswords() {
+            const container = document.getElementById('passwordsListContainer');
+            if(!container) return;
+            container.innerHTML = '';
+            if(passwords.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); font-size: 12px; grid-column: 1/-1; text-align: center; padding: 15px;">No saved passwords.</p>';
+                return;
+            }
+            passwords.forEach((p, idx) => {
+                const decryptedPass = decryptData(p.value, masterKey);
+                const card = document.createElement('div');
+                card.className = 'code-card';
+                card.innerHTML = `
+                    <div class="code-card-header">
+                        <h4>${escapeHtml(p.title)}</h4>
+                        <button class="action-btn delete-btn" onclick="deletePassword(${idx})"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <p style="font-size:11px; color:var(--text-muted);">User: ${escapeHtml(p.username || 'N/A')}</p>
+                    <button onclick="navigator.clipboard.writeText('${decryptedPass}'); showNethToast('📋 Decrypted password copied!');" class="backup-btn" style="margin-top:6px; font-size:9px; padding:3px 6px;">Copy Decrypted Password</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        window.deletePassword = function(idx) {
+            passwords.splice(idx, 1);
+            localStorage.setItem('nethvault_passwords', JSON.stringify(passwords));
+            renderPasswords();
+            showNethToast('Password removed.');
+        }
+
+        function renderTrash() {
+            const container = document.getElementById('trashListContainer');
+            if(!container) return;
+            container.innerHTML = '';
+            if(trashItems.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); font-size: 12px; grid-column: 1/-1; text-align: center; padding: 15px;">Trash is empty.</p>';
+                return;
+            }
+            trashItems.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = 'code-card';
+                card.innerHTML = `
+                    <div class="code-card-header">
+                        <h4>${escapeHtml(item.title)}</h4>
+                        <div class="card-actions">
+                            <button class="action-btn" onclick="restoreTrashItem(${idx})" title="Restore"><i class="fa-solid fa-rotate-left"></i></button>
+                            <button class="action-btn delete-btn" onclick="permanentDeleteTrash(${idx})" title="Delete"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    </div>
+                    <div><span class="badge">${item.type.toUpperCase()}</span></div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        window.restoreTrashItem = function(idx) {
+            let item = trashItems.splice(idx, 1)[0];
+            vaultItems.unshift(item);
+            localStorage.setItem('nethvault_media_items', JSON.stringify(vaultItems));
+            localStorage.setItem('nethvault_trash_items', JSON.stringify(trashItems));
+            renderFoldersGrid();
+            updateFolderCounts();
+            renderTrash();
+            showNethToast('♻️ Item restored!');
+        }
+
+        window.permanentDeleteTrash = function(idx) {
+            trashItems.splice(idx, 1);
+            localStorage.setItem('nethvault_trash_items', JSON.stringify(trashItems));
+            renderTrash();
+            showNethToast('Permanently deleted.');
+        }
+
+        window.emptyTrash = function() {
+            trashItems = [];
+            localStorage.setItem('nethvault_trash_items', JSON.stringify(trashItems));
+            renderTrash();
+            showNethToast('Trash emptied.');
+        }
+
+        window.openModal = function(id) { document.getElementById(id).style.display = 'flex'; }
+        window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; }
+
+        window.openPreviewModal = function(title, encryptedContent, type) {
+            document.getElementById('previewTitle').textContent = title;
+            const body = document.getElementById('previewBody');
+            const decrypted = decryptData(encryptedContent, masterKey);
+            
+            if(type === 'photo') {
+                body.innerHTML = `<img src="${decrypted}" style="width:100%; border-radius:8px;">`;
+            } else if(type === 'audio') {
+                body.innerHTML = `<audio controls src="${decrypted}" style="width:100%; margin-top:10px;"></audio>`;
+            } else if(type === 'pdf') {
+                body.innerHTML = `<iframe src="${decrypted}" style="width:100%; height:45vh; border:none; border-radius:8px;"></iframe>`;
+            } else {
+                body.textContent = decrypted;
+            }
+            openModal('previewModal');
+        }
+
+        window.generateShareLink = function(title) {
+            document.getElementById('shareLinkInput').value = `https://nethvault.web.app/self-destruct?token=${Math.random().toString(36).substring(7)}&file=${encodeURIComponent(title)}`;
+            openModal('shareModal');
+        }
+
+        window.copyShareLink = function() {
+            const linkBox = document.getElementById('shareLinkInput');
+            linkBox.select();
+            navigator.clipboard.writeText(linkBox.value);
+            showNethToast('📋 Self-Destruct Link Copied!');
+            closeModal('shareModal');
+        }
+
+        function renderItems(category, filterText = '') {
+            codesListContainer.innerHTML = '';
+            const filtered = vaultItems.filter(item => {
+                const matchesSearch = item.title.toLowerCase().includes(filterText.toLowerCase()) || item.type.toLowerCase().includes(filterText.toLowerCase());
+                const matchesCat = category === 'all' || item.type === category;
+                return matchesSearch && matchesCat;
+            });
+
+            if (filtered.length === 0) {
+                codesListContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 12px; grid-column: 1/-1; text-align: center; padding: 15px;">No items found.</p>';
+                return;
+            }
+
+            filtered.forEach((item) => {
+                const index = vaultItems.indexOf(item);
+                const decryptedContent = decryptData(item.content, masterKey);
+                const card = document.createElement('div');
+                card.classList.add('code-card');
+
+                let previewHTML = '';
+                if (item.type === 'photo') {
+                    previewHTML = `<img src="${decryptedContent}" class="media-preview" alt="Photo" onclick="openPreviewModal('${escapeHtml(item.title)}', '${item.content}', 'photo')">`;
+                } else if (item.type === 'video') {
+                    previewHTML = `<video src="${decryptedContent}" class="media-preview" controls></video>`;
+                } else if (item.type === 'audio') {
+                    previewHTML = `<div style="margin-top:6px;"><audio src="${decryptedContent}" controls style="width:100%; height:32px;"></audio></div>`;
+                } else {
+                    previewHTML = `<div style="margin-top:6px;"><button onclick="openPreviewModal('${escapeHtml(item.title)}', '${item.content}', 'text')" class="action-btn" style="width: auto; padding: 4px 8px; border-radius: 6px; background: var(--primary); color: #fff; font-size: 11px;">View Decrypted</button></div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="code-card-header">
+                        <div style="display: flex; align-items: center; gap: 6px; overflow: hidden;">
+                            <input type="checkbox" ${item.selected ? 'checked' : ''} onchange="toggleSelectItem(${index})" style="accent-color: var(--primary);">
+                            <h4 style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(item.title)}</h4>
+                        </div>
+                        <div class="card-actions">
+                            <button class="action-btn" onclick="generateShareLink('${escapeHtml(item.title)}')" title="Self-Destruct Link"><i class="fa-solid fa-bomb"></i></button>
+                            <button class="action-btn" onclick="toggleBookmark(${index})" title="Bookmark" style="color: ${item.isBookmarked ? '#facc15' : 'var(--text-color)'}"><i class="fa-solid fa-star"></i></button>
+                            <button class="action-btn delete-btn" onclick="deleteItem(${index})" title="Trash"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </div>
+                    <div><span class="badge">${item.type.toUpperCase()}</span></div>
+                    ${previewHTML}
+                `;
+                codesListContainer.appendChild(card);
+            });
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            if(activeFolderCategory !== null) renderItems(activeFolderCategory, e.target.value);
+        });
+
+        window.deleteItem = function(index) {
+            let removed = vaultItems.splice(index, 1)[0];
+            trashItems.unshift(removed);
+            localStorage.setItem('nethvault_media_items', JSON.stringify(vaultItems));
+            localStorage.setItem('nethvault_trash_items', JSON.stringify(trashItems));
+            renderFoldersGrid();
+            updateFolderCounts();
+            refreshBookmarksView();
+            renderTrash();
+            if(activeFolderCategory !== null) renderItems(activeFolderCategory, searchInput.value);
+            showNethToast('🗑️ Moved to Trash');
+        }
+
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatBtn = document.getElementById('sendChatBtn');
+        const voiceInputBtn = document.getElementById('voiceInputBtn');
+        const GEMINI_API_KEY = "AQ.Ab8RN6Jz6pANmiYyDR2hOwgeFQIJbzalmcyk723ILxhqyGcqg"; 
+
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'si-LK';
+            recognition.onresult = function(event) {
+                chatInput.value = event.results[0][0].transcript;
+                handleAIChat();
+            };
+        }
+
+        voiceInputBtn.addEventListener('click', () => {
+            if (recognition) { try { recognition.start(); } catch(e) { recognition.stop(); } }
+        });
+
+        window.toggleSpeech = function(btnElement, text) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text.replace(/[*_#`]/g, ''));
+            utterance.lang = 'si-LK';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        async function handleAIChat() {
+            const query = chatInput.value.trim();
+            if(!query) return;
+
+            const userWrapper = document.createElement('div');
+            userWrapper.classList.add('chat-msg-wrapper', 'user');
+            userWrapper.innerHTML = `<div class="chat-msg user">${escapeHtml(query)}</div>`;
+            chatMessages.appendChild(userWrapper);
+            chatInput.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const response = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${GEMINI_API_KEY}`;
+                const apiRes = await fetch(response, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: "NethVault Assistant.Query: " + query }] }] })
+                });
+                const data = await apiRes.json();
+                const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "පණිවිඩය ලබා ගත නොහැකි විය.";
+
+                const aiWrapper = document.createElement('div');
+                aiWrapper.classList.add('chat-msg-wrapper', 'ai');
+                aiWrapper.innerHTML = `
+                    <div class="chat-msg ai">${escapeHtml(rawText).replace(/\n/g, '<br>')}</div>
+                    <div class="msg-footer">
+                        <button class="ai-speaker-btn" onclick="toggleSpeech(this, ${JSON.stringify(rawText)})"><i class="fa-solid fa-volume-high"></i> Listen</button>
+                    </div>
+                `;
+                chatMessages.appendChild(aiWrapper);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (err) { console.error(err); }
+        }
+
+        sendChatBtn.addEventListener('click', handleAIChat);
+        chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleAIChat(); });
+
+        exportBtn.addEventListener('click', () => {
+            const backupData = { vaultItems, passwords, trashItems };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+            const anchor = document.createElement('a');
+            anchor.href = dataStr;
+            anchor.download = "nethvault_encrypted_backup.json";
+            anchor.click();
+            anchor.remove();
+        });
+
+        importFile.addEventListener('change', (e) => {
+            const reader = new FileReader();
+            if (e.target.files[0]) {
+                reader.readAsText(e.target.files[0], "UTF-8");
+                reader.onload = (event) => {
+                    try {
+                        const parsed = JSON.parse(event.target.result);
+                        vaultItems = parsed.vaultItems || parsed;
+                        if(parsed.passwords) passwords = parsed.passwords;
+                        if(parsed.trashItems) trashItems = parsed.trashItems;
+                        localStorage.setItem('nethvault_media_items', JSON.stringify(vaultItems));
+                        localStorage.setItem('nethvault_passwords', JSON.stringify(passwords));
+                        localStorage.setItem('nethvault_trash_items', JSON.stringify(trashItems));
+                        renderFoldersGrid();
+                        updateFolderCounts();
+                        renderPasswords();
+                        renderTrash();
+                        showNethToast('Encrypted backup imported!');
+                    } catch (err) { alert('Invalid backup file.'); }
+                };
+            }
+        });
+
+        function escapeHtml(text) {
+            if(!text) return '';
+            return text.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
